@@ -16,6 +16,7 @@ library(readr)      # Versión 1.1.1
 library(stringr)    # Versión 1.3.1
 library(purrr)      # Versión 0.2.4
 library(magrittr)   # Versión 1.5
+library(ggplot2)    # Versión 3.1.1
 
 #### DATOS GENERALES ####
 
@@ -36,7 +37,7 @@ paleta_tesis_fn <- read_csv("DATOS/GENERALES/PALETA_TESIS_FN.csv",col_types = "c
 
 # Departamentos
 DEPARTAMENTOS <- read_tsv(file = "DATOS/GENERALES/depts2007.txt",
-                    locale = locale(encoding = "latin1")) %>%
+                          locale = locale(encoding = "latin1")) %>%
   transmute(COD_REG = REGION,COD_DPTO = DEP, NOM_DPTO = NCCENR)
 
 # Regiones
@@ -49,6 +50,10 @@ orden_departamentos <- DEPARTAMENTOS %>%
   mutate(COD_REG = factor(COD_REG,levels = orden_regiones,ordered = T)) %>% 
   arrange(COD_REG) %>% 
   extract2("COD_DPTO")
+
+# Geofacet grid antiguas regiones
+fr_anc_reg <- read_csv(file = "DATOS/GENERALES/fr_anc_reg_grid.csv",
+                       locale = locale(encoding = "latin1"))
 
 # Auxiliares grandes ciudades
 aux_paris <- tibble(CODGEO = paste("751",str_pad(1:20,2,pad = 0),sep = ""), 
@@ -125,7 +130,7 @@ print.noquote("################## Prelimpieza de datos #######################")
 print.noquote("###############################################################")
 
 # Prelimpieza de datos de delitos
-source("LIMPIEZA_DATOS/00_PRELIMPIEZA_DATOS_DELITOS.R")
+source("SCRIPTS_R/00_PRELIMPIEZA_DATOS_DELITOS.R")
 
 #### LIMPIEZA DE DATOS ####
 
@@ -134,10 +139,19 @@ print.noquote("#################### Limpieza de datos ########################")
 print.noquote("###############################################################")
 
 # Limpieza de datos electorales
-source("LIMPIEZA_DATOS/01_LIMPIEZA_DATOS_ELECTORALES.R")
+source("SCRIPTS_R/01_LIMPIEZA_DATOS_ELECTORALES.R")
 # Limpieza de datos censales
-source("LIMPIEZA_DATOS/02_LIMPIEZA_DATOS_CENSALES.R")
+source("SCRIPTS_R/02_LIMPIEZA_DATOS_CENSALES.R")
 # Limpieza de otros datos comunales
-source("LIMPIEZA_DATOS/03_LIMPIEZA_OTROS_DATOS_COMUNALES.R")
+source("SCRIPTS_R/03_LIMPIEZA_OTROS_DATOS_COMUNALES.R")
 # Limpieza de datos a nivel departamentos
-source("LIMPIEZA_DATOS/04_LIMPIEZA_DATOS_NIVEL_DEPARTAMENTOS.R")
+source("SCRIPTS_R/04_LIMPIEZA_DATOS_NIVEL_DEPARTAMENTOS.R")
+
+#### ANÁLISIS EXPLORATORIO DE DATOS ####
+
+print.noquote("###############################################################")
+print.noquote("############### Análisis exploratorio de datos ################")
+print.noquote("###############################################################")
+
+# AED electoral
+source("SCRIPTS_R/05_AED_ELECTORAL.R")
