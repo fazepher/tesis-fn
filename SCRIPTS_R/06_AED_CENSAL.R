@@ -64,39 +64,111 @@ print.noquote("###############################################################")
 print.noquote("########### Generando geofacets distribuciones votos ##########")
 print.noquote("###############################################################")
 
-grafica_distr_por_comuna <- function(datos,variable,cats,nombres,colores){
+geofacet_distr_cat_dpto <- function(aaaa,cat,nombre,color){
   
-  graf <- datos %>% 
-    select("CODGEO","AÑO",cats) %>% 
-    gather(VARIABLE,PCT,-CODGEO,-AÑO) %>% 
-    ggplot(aes(x = VARIABLE, y = PCT, fill = VARIABLE)) + 
-    geom_violin(adjust = 2) + 
-    stat_summary(fun.data = function(PCT){return(tibble(y = quantile(PCT,0.5),
-                                                        ymin = quantile(PCT,0.025), 
-                                                        ymax = quantile(PCT,0.975)))},
-                 size = 2) +
-    facet_wrap(~AÑO,nrow = 2, ncol = 1) + 
-    scale_fill_manual(values = colores) + 
+  if(aaaa == 2007){
+    datos <-  datos_censales %>% 
+      filter(AÑO == aaaa) %>% 
+      inner_join(COMUNAS_2007) %>% 
+      filter(COD_REG %in% filter(fr_anc_reg,col<=6)$code) %>% 
+      select(CODGEO,COD_DPTO:NOM_REG,cat) %>% 
+      rename(Pct = UQ(cat)) %>% 
+      filter(!is.na(Pct))
+  } else{
+    datos <-  datos_censales %>% 
+      filter(AÑO == aaaa) %>% 
+      inner_join(COMUNAS_2012) %>% 
+      filter(COD_REG %in% filter(fr_anc_reg,col<=6)$code) %>% 
+      select(CODGEO,COD_DPTO:NOM_REG,cat) %>% 
+      rename(Pct = UQ(cat)) %>% 
+      filter(!is.na(Pct))
+  }
+  
+  pct_comuna_sub <- datos %>% 
+    ggplot(aes(x="Metrópoli entera",y=Pct)) + 
+    geom_hline(aes(yintercept = median(Pct)),color="gray20") + 
+    geom_hline(aes(yintercept = quantile(Pct,0.25)),color = "gray50") + 
+    geom_hline(aes(yintercept = quantile(Pct,0.75)),color = "gray50") + 
+    geom_violin(fill = "transparent", color = color) + 
+    scale_y_continuous(breaks = seq(0,1,0.25),labels = paste(seq(0,100,25),"%"), trans = "log1p") + 
+    scale_x_discrete(position = "top") +
     theme_minimal() + 
-    labs(title = paste("Distribución por", variable, "de las poblaciones comunales",sep = " "), 
-         subtitle = "Los puntos con línea representan la mediana y el 95% de las observaciones",
-         y = "Porcentaje como proporción de la población de la comuna",
-         x = variable) +
-    scale_y_continuous(breaks = c(.25,.5,.75), labels = paste(c(25,50,75), "%", sep = " "),limits = c(0,1)) +
-    scale_x_discrete(labels = nombres %>% set_names(cats)) + 
+    theme(legend.position = "none",
+          panel.grid = element_blank(),
+          axis.title = element_blank(),
+          axis.text.x = element_text(margin = margin(30,0,10,0), size = 10),
+          axis.text.y = element_text(size = 15))
+  
+  pct_comuna_dpto <- datos %>% 
+    mutate(MEDIANA_NAL = median(Pct)) %>% 
+    group_by(COD_REG) %>% 
+    mutate(MEDIANA_REG = median(Pct)) %>% 
+    ungroup %>% 
+    mutate(NOM_REG = reorder(NOM_REG,MEDIANA_REG)) %>% 
+    group_by(COD_DPTO) %>% 
+    mutate(MEDIANA_DPTO = median(Pct)) %>% 
+    ungroup %>% 
+    mutate(COD_DPTO = reorder(COD_DPTO,MEDIANA_DPTO)) %>% 
+    ggplot(aes(x = COD_DPTO, y = Pct)) + 
+    geom_hline(aes(yintercept = median(Pct)),color="gray20") + 
+    geom_hline(aes(yintercept = quantile(Pct,0.25)),color = "gray50") + 
+    geom_hline(aes(yintercept = quantile(Pct,0.75)),color = "gray50") + 
+    geom_violin(aes(alpha = MEDIANA_DPTO/MEDIANA_NAL), fill = color) + 
+    geofacet::facet_geo(~COD_REG, grid = filter(fr_anc_reg,col<=6), label = "name", scales = "free_x") + 
+    scale_alpha_continuous(range = c(0.3,1)) + 
+    scale_y_continuous(breaks = seq(0,1,0.25),labels = paste(seq(0,100,25),"%"),trans = "log1p") + 
+    theme_minimal() + 
+    labs(title = paste(nombre,"en",aaaa,sep = " "), 
+         subtitle = "% de la población comunal por departamento") + 
     theme(legend.position = "none", 
+          panel.grid = element_blank(), 
+          axis.title.y = element_blank(),
+          axis.text.x = element_text(margin = margin(30,0,10,0), size = 10),
+          axis.ticks.x = element_blank(),
+          axis.title.x = element_blank(),
+          axis.text.y = element_blank(),#element_text(size = 15),
           strip.text.x = element_text(size = 15, margin = margin(10,0,0,0)),
           plot.title = element_text(size = 30, hjust = 0.5),
           plot.subtitle = element_text(margin = margin(5,0,25,0), size = 20, hjust = 0.5))
   
-  return(graf)
+  ggplot(tibble(x=0:1,y=0:1),aes(x,y)) +
+    theme_void() +
+    annotation_custom(grob = ggplotGrob(pct_comuna_dpto),
+                      xmin = 0,xmax = 1,ymin = 0,ymax = 1) +
+    annotation_custom(grob = ggplotGrob(pct_comuna_sub),
+                      xmin = 0.82,xmax = 0.92,ymin = 0.8,ymax = 0.95) %>%
+    return(.)
+  
 }
 
 
-grafica_distr_por_comuna(datos = datos_censales, 
-                         variable = "Sexo", 
-                         cats = c("Hom","Muj"),
-                         nombres = c("Hombres","Mujeres"),
-                         colores = filter(paleta_tesis_fn,FAMILIA %in% c("Izquierda","Otras derechas")) %>% 
-                           extract2("COLOR") %>% rev) %>% 
-  ggsave(plot = ., filename = "Prueba_Censales.pdf", device = cairo_pdf, width = 20, height = 15)
+datos_censales %>% 
+  select(-c(CODGEO:Pob)) %>% colnames() %>% 
+  tibble(Cat = ., 
+         Nombre = c("Hombres","Mujeres",
+                    "0 a 17 años", "18 a 24 años", "25 a 39 años", "40 a 54 años", "55 a 64 años", "65+ años",
+                    "Franceses", "Extranjeros",
+                    "Agricultores", "Artesanos, comerciantes y empresarios", "Cuadros y prof. intel. sup.",
+                    "Profesiones intermediarias", "Empleados", "Obreros", "Retirados","Otras personas sin actividad",
+                    "Inmigrantes", "Locales"),
+         Color = c("Derecha","Izquierda",
+                   familias_politicas[-1],
+                   "Derecha","Izquierda",
+                   familias_politicas,NA,
+                   "Derecha","Izquierda")) %>% 
+  mutate(Aux1 = 2007, Aux2 = 2012) %>% 
+  gather(Aux,Año,Aux1,Aux2) %>% 
+  select(-Aux) %>% 
+  mutate(Archivo = paste("AED/CENSALES/Distr_Dptos/Geofacet_Distr_por_Dpto_",
+                         Cat,
+                         "_",
+                         Año,
+                         ".pdf",
+                         sep = "")) %>% 
+  sample_n(3) %>% 
+  pmap(~ filter(paleta_tesis_fn, FAMILIA == ..3) %>% 
+         extract2("COLOR") %>% 
+         {if_else(length(.)==0,"gray98",.) %>% 
+         {geofacet_distr_cat_dpto(aaaa = ..4,cat = ..1, nombre = ..2, color = .)} %T>% 
+             ggsave(plot = ., width = 25, height = 25, device = cairo_pdf, filename =..5))
+
