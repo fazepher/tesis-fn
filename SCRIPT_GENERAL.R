@@ -155,3 +155,5 @@ print.noquote("###############################################################")
 
 # AED electoral
 source("SCRIPTS_R/05_AED_ELECTORAL.R")
+source("SCRIPTS_R/06_AED_CENSAL.R")
+source("SCRIPTS_R/07_AED_OTROS_COMUNALES.R")
