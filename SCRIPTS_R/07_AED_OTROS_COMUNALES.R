@@ -247,25 +247,21 @@ distribuciones_variables_censales <- otros_datos_comunales %>%
          {geofacet_distr_cat_dpto(aaaa = ..4,cat = ..1, nombre = ..2, color = .)} %T>% 
          ggsave(plot = ., width = 25, height = 25, device = cairo_pdf, filename =..5))
 
-disperciones_variables_censales <- datos_censales %>% 
-  select(-c(CODGEO:Pob)) %>% colnames() %>% 
+disperciones_variables_censales <- otros_datos_comunales %>% 
+  select(-c(CODGEO,AÑO)) %>% colnames() %>% 
   tibble(Cat = ., 
-         Nombre = c("Hombres","Mujeres",
-                    "0 a 17 años", "18 a 24 años", "25 a 39 años", "40 a 54 años", "55 a 64 años", "65+ años",
-                    "Franceses", "Extranjeros",
-                    "Agricultores", "Artesanos, comerciantes y empresarios", "Cuadros y profesiones intelectuales superiores",
-                    "Profesiones intermediarias", "Empleados", "Obreros", "Retirados","Otras personas sin actividad",
-                    "Inmigrantes", "Locales"),
-         Color = c("Derecha","Izquierda",
-                   familias_politicas[-1],
-                   "Derecha","Izquierda",
-                   familias_politicas,NA,
-                   "Derecha","Izquierda")) %>% 
+         Nombre = c("Empleados 15-24 años", "Empleados 25-54 años", "Empleados 55-64 años",
+                    "Desempleados 15-24 años", "Desempleados 25-54 años", "Desempleados 55-64 años",
+                    "Sin diploma", "Primaria/Secundaria", "Preparatoria o equivalente", "Universidad o más", 
+                    "Todavía estudiando"),
+         Color = c("Derecha","Otros","Otras derechas",
+                   "Izquierda","Centro","Otras izquierdas",
+                   familias_politicas[-c(2,3)])) %>% 
   mutate(Aux1 = "Legislativas 2007", Aux2 = "Legislativas 2012", 
          Aux3 = "Presidenciales 2007", Aux4 = "Presidenciales 2012") %>% 
   gather(Aux,Elección,starts_with("Aux")) %>% 
   select(-Aux) %>% 
-  mutate(Archivo = paste("AED/CENSALES/Disper_FN_Reg/Geofacet_Disper_por_Dpto_FN_",
+  mutate(Archivo = paste("AED/OTROS_COMUNALES/Disper_FN_Reg/Geofacet_Disper_por_Dpto_FN_",
                          Cat,
                          "_",
                          Elección,
