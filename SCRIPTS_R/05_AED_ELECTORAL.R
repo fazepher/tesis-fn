@@ -82,7 +82,7 @@ genera_geofacet_distr_votos <- function(elec, familia){
              alpha = MEDIANA/MEDIANA_NAL, stat(density))) + 
     geom_histogram(binwidth = 0.01) +
     geom_density(data = select(datos_distr_por_anc_reg,-COD_REG),fill="transparent",color="black") +
-    geofacet::facet_geo(~COD_REG, grid = filter(fr_anc_reg,col<=6), label = "name") + 
+    facet_geo(~COD_REG, grid = filter(fr_anc_reg,col<=6), label = "name") + 
     scale_fill_manual(values = color) + 
     #scale_color_manual(values = color) + 
     scale_alpha_continuous(range = c(0.3,1)) + 
@@ -125,7 +125,7 @@ geofacet_corr_leg_pres <- function(aaaa,familia_base){
     filter(FAMILIA == "Izquierda") %>% 
     {ggplot(.,aes(x=PCT_VOT_BR_PRES,y=log(PCT_LEGIS_FAM_BASE/(1-PCT_LEGIS_FAM_BASE)),color=FAMILIA)) + 
         geom_point(alpha = 0.4) + 
-        geofacet::facet_geo(~COD_REG, grid = filter(fr_anc_reg,col<=6), label = "name",scales = "free") + 
+        facet_geo(~COD_REG, grid = filter(fr_anc_reg,col<=6), label = "name",scales = "free") + 
         scale_color_manual(values = set_names(paleta_tesis_fn$COLOR,paleta_tesis_fn$FAMILIA))} %>% 
     ggsave(plot = ., filename = "Probando.pdf",device = cairo_pdf,width = 25,height = 25)
   
@@ -178,7 +178,7 @@ geofacet_pct_votos_dpto <- function(elec,familia){
     geom_hline(aes(yintercept = quantile(PCT_VOTOS_BR,0.25)),color = "gray50") + 
     geom_hline(aes(yintercept = quantile(PCT_VOTOS_BR,0.75)),color = "gray50") + 
     geom_violin(aes(alpha = MEDIANA_DPTO/MEDIANA_NAL)) + 
-    geofacet::facet_geo(~COD_REG, grid = filter(fr_anc_reg,col<=6), label = "name", scales = "free_x") + 
+    facet_geo(~COD_REG, grid = filter(fr_anc_reg,col<=6), label = "name", scales = "free_x") + 
     scale_fill_manual(values = color) + 
     scale_alpha_continuous(range = c(0.3,1)) + 
     scale_y_continuous(breaks = seq(0,1,0.25),labels = paste(seq(0,100,25),"%"), 
@@ -211,7 +211,6 @@ geofacet_pct_votos_dpto <- function(elec,familia){
 geofacets_distr_por_reg <-list(elección = unique(datos_electorales_completos$ELECCION),
                                familia = familias_politicas) %>% 
   cross_df %>% 
-  filter(familia == "FN") %>% 
   mutate(Archivo = paste("AED/ELECTORALES/Geofacet_Reg/Geofacet_Distr_por_Reg_",
                          str_remove_all(elección,"(residenciales 20)|(egislativas 20)"),
                          "_",

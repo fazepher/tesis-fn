@@ -10,13 +10,14 @@
 
 #### PAQUETES A UTILIZAR ####
 
-library(tidyr)      # Versión 0.8.1
-library(dplyr)      # Versión 0.8.0.1
-library(readr)      # Versión 1.1.1
-library(stringr)    # Versión 1.3.1
-library(purrr)      # Versión 0.2.4
+library(tidyr)      # Versión 0.8.3
+library(dplyr)      # Versión 0.8.1
+library(readr)      # Versión 1.3.1
+library(stringr)    # Versión 1.4.0
+library(purrr)      # Versión 0.3.2
 library(magrittr)   # Versión 1.5
 library(ggplot2)    # Versión 3.1.1
+library(geofacet)   # Versión 0.1.10
 
 #### DATOS GENERALES ####
 
@@ -130,6 +131,7 @@ print.noquote("################## Prelimpieza de datos #######################")
 print.noquote("###############################################################")
 
 # Prelimpieza de datos de delitos
+# TARDADO
 source("SCRIPTS_R/00_PRELIMPIEZA_DATOS_DELITOS.R")
 
 #### LIMPIEZA DE DATOS ####
@@ -154,6 +156,7 @@ print.noquote("############### Análisis exploratorio de datos ################")
 print.noquote("###############################################################")
 
 # AED electoral
-source("SCRIPTS_R/05_AED_ELECTORAL.R")
+# TARDA
+source("SCRIPTS_R/05_AED_ELECTORAL.R") 
 source("SCRIPTS_R/06_AED_CENSAL.R")
 source("SCRIPTS_R/07_AED_OTROS_COMUNALES.R")
