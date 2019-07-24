@@ -11,12 +11,12 @@
 #### PAQUETES A UTILIZAR ####
 
 library(tidyr)      # Versión 0.8.3
-library(dplyr)      # Versión 0.8.1
+library(dplyr)      # Versión 0.8.3
 library(readr)      # Versión 1.3.1
 library(stringr)    # Versión 1.4.0
 library(purrr)      # Versión 0.3.2
 library(magrittr)   # Versión 1.5
-library(ggplot2)    # Versión 3.1.1
+library(ggplot2)    # Versión 3.2.0
 library(geofacet)   # Versión 0.1.10
 
 #### DATOS GENERALES ####
@@ -24,6 +24,11 @@ library(geofacet)   # Versión 0.1.10
 print.noquote("###############################################################")
 print.noquote("###################### Cargando datos #########################")
 print.noquote("###############################################################")
+
+# Variables explicativas 
+print.noquote("################ Equivalencias variables #######################")
+equivalencia_variables <- read_csv("DATOS/GENERALES/Variables.csv", 
+                                   locale = locale(encoding = "latin1"))
 
 # Familias políticas
 print.noquote("#################### Familias Políticas #######################")
@@ -98,7 +103,8 @@ COMUNAS_2007 <- read_tsv(file = "DATOS/GENERALES/comsimp2007.txt",
   left_join(REGIONES, by = c("COD_REG")) %>% 
   bind_rows(aux_paris) %>% 
   bind_rows(aux_lyon) %>% 
-  bind_rows(aux_marsella)
+  bind_rows(aux_marsella) %>% 
+  filter(!{CODGEO %in% c(13055,69123,75056)})
 
 COMUNAS_2012 <- read_tsv(file = "DATOS/GENERALES/comsimp2012.txt", 
                          locale = locale(encoding = "latin1")) %>% 
@@ -119,7 +125,8 @@ COMUNAS_2012 <- read_tsv(file = "DATOS/GENERALES/comsimp2012.txt",
   left_join(REGIONES, by = c("COD_REG")) %>% 
   bind_rows(aux_paris) %>% 
   bind_rows(aux_lyon) %>% 
-  bind_rows(aux_marsella)
+  bind_rows(aux_marsella) %>% 
+  filter(!{CODGEO %in% c(13055,69123,75056)})
 
 # Eliminamos auxiliares de las grandes ciudades
 remove(aux_paris,aux_lyon,aux_marsella)
@@ -132,7 +139,7 @@ print.noquote("###############################################################")
 
 # Prelimpieza de datos de delitos
 # TARDADO
-source("SCRIPTS_R/00_PRELIMPIEZA_DATOS_DELITOS.R")
+#source("SCRIPTS_R/00_PRELIMPIEZA_DATOS_DELITOS.R")
 
 #### LIMPIEZA DE DATOS ####
 
@@ -141,13 +148,13 @@ print.noquote("#################### Limpieza de datos ########################")
 print.noquote("###############################################################")
 
 # Limpieza de datos electorales
-source("SCRIPTS_R/01_LIMPIEZA_DATOS_ELECTORALES.R")
+#source("SCRIPTS_R/01_LIMPIEZA_DATOS_ELECTORALES.R")
 # Limpieza de datos censales
-source("SCRIPTS_R/02_LIMPIEZA_DATOS_CENSALES.R")
+#source("SCRIPTS_R/02_LIMPIEZA_DATOS_CENSALES.R")
 # Limpieza de otros datos comunales
-source("SCRIPTS_R/03_LIMPIEZA_OTROS_DATOS_COMUNALES.R")
+#source("SCRIPTS_R/03_LIMPIEZA_OTROS_DATOS_COMUNALES.R")
 # Limpieza de datos a nivel departamentos
-source("SCRIPTS_R/04_LIMPIEZA_DATOS_NIVEL_DEPARTAMENTOS.R")
+#source("SCRIPTS_R/04_LIMPIEZA_DATOS_NIVEL_DEPARTAMENTOS.R")
 
 #### ANÁLISIS EXPLORATORIO DE DATOS ####
 
@@ -157,6 +164,12 @@ print.noquote("###############################################################")
 
 # AED electoral
 # TARDA
-source("SCRIPTS_R/05_AED_ELECTORAL.R") 
-source("SCRIPTS_R/06_AED_CENSAL.R")
-source("SCRIPTS_R/07_AED_OTROS_COMUNALES.R")
+# source("SCRIPTS_R/05_AED_ELECTORAL.R") 
+# source("SCRIPTS_R/06_AED_CENSAL.R")
+# source("SCRIPTS_R/07_AED_OTROS_COMUNALES.R")
+
+#### MODELOS INDIVIDUALES ####
+
+print.noquote("###############################################################")
+print.noquote("################### Modelos individuales ######################")
+print.noquote("###############################################################")
