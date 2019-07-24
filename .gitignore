@@ -1,5 +1,6 @@
 *.Rproj.user
 *.Rhistory
+*.rds
 *.RData
 *.Ruserdata
 !primera_prueba_modelo_0.txt
