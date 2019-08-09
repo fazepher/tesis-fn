@@ -115,9 +115,9 @@ fronteras_reg_dorling <- dorling_dptos %>%
 cuantiles_votos <- datos_P12 %>% 
   transmute(Pct = VOT_CANDIDATO/INSCRITOS) %>% 
   extract2(1) %>% 
-  quantile(c(0,.45,.5,.55,0.95,1))
+  quantile(c(0,0.25,.45,.5,.55,0.75,0.95,1))
 
-etiquetas_votos <- round(100*cuantiles_votos[c(1,3,6)], 1) %>% 
+etiquetas_votos <- round(100*cuantiles_votos[c(1,4,8)], 1) %>% 
 {paste(c("Mínimo real: ", "Mediana real: ", "Máximo real: "),.,"%",sep="")}
 
 #### ANALIZA ####
@@ -160,9 +160,9 @@ analiza_pred_modelo <- function(variable, tipo, genera_mapas = T){
       scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[c(6,3)],"white",
                                        paleta_tesis_fn$COLOR[c(5,2)],"#0c1740"),
                            values = scales::rescale(cuantiles_votos),
-                           breaks = cuantiles_votos[c(1,3,6)],
+                           breaks = cuantiles_votos[c(1,4,8)],
                            labels = etiquetas_votos,
-                           limits = cuantiles_votos[c(1,6)]) + 
+                           limits = cuantiles_votos[c(1,8)]) + 
       theme_void() + 
       theme(legend.position = "left")
     

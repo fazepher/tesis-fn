@@ -62,6 +62,15 @@ variables <- list(x_escol = datos_P12 %>%
                     as.matrix, 
                   x_sexo = datos_P12 %>%
                     select(Muj,Hom) %>%
+                    as.matrix,
+                  x_ocu_juv = datos_P12 %>%
+                    select(Ocu1,Des1) %>%
+                    as.matrix,
+                  x_ocu_gral = datos_P12 %>%
+                    select(Ocu2,Des2) %>%
+                    as.matrix,
+                  x_ocu_may = datos_P12 %>%
+                    select(Ocu3,Des3) %>%
                     as.matrix)
 
 extrae_simulaciones <- function(.data,n_simul, tipo, ...){
@@ -154,7 +163,13 @@ genera_predicciones_modelo <- function(modelo, n_simul,...,
                     lambda_ajus = extrae_coeficientes_mcmc(simulaciones_mcmc,"lambda_ajus",
                                                            n_cats = 2, tam_simul = n_simul),
                     kappa_ajus = extrae_coeficientes_mcmc(simulaciones_mcmc,"kappa_ajus",
-                                                          n_cats = 2, tam_simul = n_simul)) %>% 
+                                                          n_cats = 2, tam_simul = n_simul),
+                    zeta_ajus = extrae_coeficientes_mcmc(simulaciones_mcmc,"zeta_ajus",
+                                                         n_cats = 2, tam_simul = n_simul),
+                    xi_ajus = extrae_coeficientes_mcmc(simulaciones_mcmc,"xi_ajus",
+                                                         n_cats = 2, tam_simul = n_simul),
+                    upsilon_ajus = extrae_coeficientes_mcmc(simulaciones_mcmc,"upsilon_ajus",
+                                                         n_cats = 2, tam_simul = n_simul)) %>% 
     c(variables)
   
   print.noquote("##### GENERANDO PREDICCIONES #####")
@@ -166,14 +181,59 @@ genera_predicciones_modelo <- function(modelo, n_simul,...,
   
 }
 
-modelo_pred_compilado <- stan_model(file = "MODELOS_STAN/Modelos_Compuestos_Solo_Pred.stan")
 
-genera_pred_modelos <- LETTERS[1:4] %>%
-  map(~ genera_predicciones_modelo(modelo = .x, 
-                                   n_simul = 4000, 
-                                   pars = c("lp__","log_lik"), 
-                                   include = FALSE) %>% 
-         list(Modelo = .x, Predicciones = .) %>% 
-         saveRDS(file = paste("MODELOS_STAN/Modelos_Jer_Comp/Modelo_Jer_Compuesto",.x,"PRED.rds", sep = "_")))
+
+#modelo_pred_compilado <- stan_model(file = "MODELOS_STAN/Modelos_Compuestos_Solo_Pred.stan")
+# modelo_ocu_juv <- stan_model(file = "MODELOS_STAN/Modelos_Compuestos_Ocu_Juv_Solo_Pred.stan")
+# modelo_ocu_gral <- stan_model(file = "MODELOS_STAN/Modelos_Compuestos_Ocu_Gral_Solo_Pred.stan")
+modelo_ocu_todas <- stan_model(file = "MODELOS_STAN/Modelos_Compuestos_Ocu_Todas_Solo_Pred.stan")
+
+# genera_pred_modelos <- LETTERS[1:4] %>%
+#   map(~ genera_predicciones_modelo(modelo = .x, 
+#                                    n_simul = 4000, 
+#                                    pars = c("lp__","log_lik"), 
+#                                    include = FALSE) %>% 
+#          list(Modelo = .x, Predicciones = .) %>% 
+#          saveRDS(file = paste("MODELOS_STAN/Modelos_Jer_Comp/Modelo_Jer_Compuesto",.x,"PRED.rds", sep = "_")))
+# remove(genera_pred_modelos)
+
+# genera_pred_modelos <- modelo_ocu_juv %>% 
+#   genera_predicciones_modelo(modelo = "E", 
+#                              n_simul = 4000, 
+#                              pars = c("lp__","log_lik"), 
+#                              include = FALSE, 
+#                              modelo_compilado = .) %>% 
+#   list(Modelo = "E", Predicciones = .) %>% 
+#   saveRDS(file = "MODELOS_STAN/Modelos_Jer_Comp/Modelo_Jer_Compuesto_E_PRED.rds")
+# remove(genera_pred_modelos)
+# 
+# genera_pred_modelos <- modelo_ocu_gral %>% 
+#   genera_predicciones_modelo(modelo = "F", 
+#                              n_simul = 4000, 
+#                              pars = c("lp__","log_lik"), 
+#                              include = FALSE, 
+#                              modelo_compilado = .) %>% 
+#   list(Modelo = "F", Predicciones = .) %>% 
+#   saveRDS(file = "MODELOS_STAN/Modelos_Jer_Comp/Modelo_Jer_Compuesto_F_PRED.rds")
+# remove(genera_pred_modelos)
+
+# genera_pred_modelos <- modelo_ocu_todas %>% 
+#   genera_predicciones_modelo(modelo = "G", 
+#                              n_simul = 4000, 
+#                              pars = c("lp__","log_lik"), 
+#                              include = FALSE, 
+#                              modelo_compilado = .) %>% 
+#   list(Modelo = "G", Predicciones = .) %>% 
+#   saveRDS(file = "MODELOS_STAN/Modelos_Jer_Comp/Modelo_Jer_Compuesto_G_PRED.rds")
+# remove(genera_pred_modelos)
+
+genera_pred_modelos <- modelo_ocu_todas %>% 
+  genera_predicciones_modelo(modelo = "H", 
+                             n_simul = 4000, 
+                             pars = c("lp__","log_lik"), 
+                             include = FALSE, 
+                             modelo_compilado = .) %>% 
+  list(Modelo = "H", Predicciones = .) %>% 
+  saveRDS(file = "MODELOS_STAN/Modelos_Jer_Comp/Modelo_Jer_Compuesto_H_PRED.rds")
 remove(genera_pred_modelos)
 

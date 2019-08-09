@@ -78,9 +78,9 @@ fronteras_reg_dorling <- dorling_dptos %>%
 cuantiles_votos <- datos_P12 %>% 
   transmute(Pct = VOT_CANDIDATO/INSCRITOS) %>% 
   extract2(1) %>% 
-  quantile(c(0,.45,.5,.55,0.95,1))
+  quantile(c(0,.25,.45,.5,.55,.75,0.95,1))
 
-etiquetas_votos <- round(100*cuantiles_votos[c(1,3,6)], 1) %>% 
+etiquetas_votos <- round(100*cuantiles_votos[c(1,4,8)], 1) %>% 
 {paste(c("Mínimo real: ", "Mediana real: ", "Máximo real: "),.,"%",sep="")}
 
 #### ANALIZA ####
@@ -121,9 +121,9 @@ analiza_pred_modelo <- function(modelo, genera_mapas = T){
       scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[c(6,3)],"white",
                                        paleta_tesis_fn$COLOR[c(5,2)],"#0c1740"),
                            values = scales::rescale(cuantiles_votos),
-                           breaks = cuantiles_votos[c(1,3,6)],
+                           breaks = cuantiles_votos[c(1,4,8)],
                            labels = etiquetas_votos,
-                           limits = cuantiles_votos[c(1,6)]) + 
+                           limits = cuantiles_votos[c(1,8)]) + 
       theme_void() + 
       theme(legend.position = "left")
     
@@ -184,37 +184,37 @@ analiza_pred_modelo <- function(modelo, genera_mapas = T){
   return(medidas_error)
 }
 
-medidas_errores_modelos <- LETTERS[1:4] %>%
+medidas_errores_modelos <- LETTERS[7:8] %>%
   map_dfr(~ analiza_pred_modelo(.x))
 
-write.csv(medidas_errores_modelos,file = "MODELOS_STAN/Medidas_Errores_Modelos_Comp.csv",row.names = FALSE)
+#write.csv(medidas_errores_modelos,file = "MODELOS_STAN/Medidas_Errores_Modelos_Comp.csv",row.names = FALSE)
 
-medidas_mejor_individuales <- read_csv("MODELOS_STAN/Medidas_Errores_Modelos.csv",
-                                         locale = locale(encoding = "latin1")) %>% 
-  filter(Tipo == "Jerárquico", Variable %in% c("Escolaridad","Cat. Socioprof.","Edad","Cond. Migratoria","Sexo")) %>% 
-  select(-Tipo,-Tiempo) %>% 
-  mutate(Modelo = "0")
+# medidas_mejor_individuales <- read_csv("MODELOS_STAN/Medidas_Errores_Modelos.csv",
+#                                          locale = locale(encoding = "latin1")) %>% 
+#   filter(Tipo == "Jerárquico", Variable %in% c("Escolaridad","Cat. Socioprof.","Edad","Cond. Migratoria","Sexo")) %>% 
+#   select(-Tipo,-Tiempo) %>% 
+#   mutate(Modelo = "0")
 
-medidas_errores_modelos %>%
-  bind_rows(medidas_mejor_individuales) %>%
-  mutate(Variable = case_when(Modelo == "A" ~ "Escol. + CSP", 
-                              Modelo == "B" ~ "Escol. + CSP + Edad",
-                              Modelo == "C" ~ "Escol. + CSP + Edad + Cond. Migr.",
-                              Modelo == "D" ~ "Escol. + CSP + Edad + Cond. Migr. + Sexo",
-                              T ~ Variable) %>% 
-           reorder(WAIC)) %>% 
-  {ggplot(.,aes(y=Variable,x=WAIC, color = Modelo)) +
-      geom_point(size=rel(4)) +
-      scale_color_manual(values = paleta_tesis_fn$COLOR[c(6,3,4,2,7)], 
-                         labels = c("1 variable", "2 variables", "3 variables", "4 variables", "5 variables")) +
-      labs(title = "El WAIC mejora al ir agregando las variables explicativas") +
-      theme_linedraw() +
-      theme(legend.position = "bottom", 
-            panel.grid = element_blank(),
-            axis.text.y = element_text(size = rel(1.1)),
-            plot.margin = margin(r = 10, l = 10),
-            plot.title = element_text(margin = margin(t = 10, b = 10), size = rel(1.7)),
-            axis.title.x = element_text(margin = margin(t = 15, b = 7), size = rel(1.2)),
-            axis.title.y = element_blank())} %>%
-  ggsave(filename = "MODELOS_STAN/Graf_WAIC_Modelos_Compuestos.pdf",plot = .,
-         device = cairo_pdf, width = 20, height = 10)
+# medidas_errores_modelos %>%
+#   bind_rows(medidas_mejor_individuales) %>%
+#   mutate(Variable = case_when(Modelo == "A" ~ "Escol. + CSP", 
+#                               Modelo == "B" ~ "Escol. + CSP + Edad",
+#                               Modelo == "C" ~ "Escol. + CSP + Edad + Cond. Migr.",
+#                               Modelo == "D" ~ "Escol. + CSP + Edad + Cond. Migr. + Sexo",
+#                               T ~ Variable) %>% 
+#            reorder(WAIC)) %>% 
+#   {ggplot(.,aes(y=Variable,x=WAIC, color = Modelo)) +
+#       geom_point(size=rel(4)) +
+#       scale_color_manual(values = paleta_tesis_fn$COLOR[c(6,3,4,2,7)], 
+#                          labels = c("1 variable", "2 variables", "3 variables", "4 variables", "5 variables")) +
+#       labs(title = "El WAIC mejora al ir agregando las variables explicativas") +
+#       theme_linedraw() +
+#       theme(legend.position = "bottom", 
+#             panel.grid = element_blank(),
+#             axis.text.y = element_text(size = rel(1.1)),
+#             plot.margin = margin(r = 10, l = 10),
+#             plot.title = element_text(margin = margin(t = 10, b = 10), size = rel(1.7)),
+#             axis.title.x = element_text(margin = margin(t = 15, b = 7), size = rel(1.2)),
+#             axis.title.y = element_blank())} %>%
+#   ggsave(filename = "MODELOS_STAN/Graf_WAIC_Modelos_Compuestos.pdf",plot = .,
+#          device = cairo_pdf, width = 20, height = 10)

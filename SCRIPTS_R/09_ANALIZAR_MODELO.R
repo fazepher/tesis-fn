@@ -33,6 +33,8 @@ prueba_datos_unificados <- datos_electorales_completos %>%
   left_join(full_join(COMUNAS_2007,COMUNAS_2012)) %>% 
   select(CODGEO,NOM_COMUNA:NOM_REG,AÑO,ELECCION,everything())
 
+datos_P12 <- filter(prueba_datos_unificados, ELECCION == "Presidenciales 2012")
+
 # pred_post_dptal <- predictiva_posterior %>%
 #   mutate(Pct_Comuna_Obs = VOT_CANDIDATO/INSCRITOS,
 #          Pct_Comuna_Est = VOT_SIMUL/INSCRITOS) %>% 
@@ -97,7 +99,7 @@ fronteras_reg_dorling <- dorling_dptos %>%
 
 shape_votos_P12 <- left_join(datos_P12,mapa_comunas, by = c("CODGEO" = "insee")) %>% 
   mutate(Pct = VOT_CANDIDATO/INSCRITOS) %>% 
-  left_join(mutate(muestra, Muestra = TRUE)) %>% 
+  left_join(mutate(muestra, Muestra = TRUE,COD_REG = as.character(COD_REG))) %>% 
   st_as_sf %>% 
   st_transform(crs = 25832)
 
@@ -115,25 +117,44 @@ dorling_dptos_votos_P12 <- shape_votos_P12 %>%
   {left_join(dorling_dptos_votos_P12,.,
              by = c("code_insee"="COD_DPTO"))}
 
-cuantiles_votos <- quantile(shape_votos_P12$Pct,c(0,.45,.5,.55,0.95,1))
-cuantiles_votos_dptos <- datos_P12 %>% 
-  group_by(COD_DPTO) %>% 
-  summarise(Pct = sum(VOT_CANDIDATO)/sum(INSCRITOS)) %>% 
-  extract2("Pct") %>% 
-  quantile(c(0,.45,.5,.55,1))
+cuantiles_votos <- quantile(shape_votos_P12$Pct,c(0,.25,.45,.5,.55,.75,0.95,1))
 
-mapa_votos_br_p12_mediana <- ggplot(shape_votos_P12) + 
+distr_votos_br_p12 <- shape_votos_P12 %>% 
+  ggplot() + 
+  geom_histogram(aes(x=Pct),
+                 binwidth = 0.0025, fill = paleta_tesis_fn$COLOR[5], color = paleta_tesis_fn$COLOR[2]) + 
+  geom_rug(data = tibble(Cuantil = quantile(shape_votos_P12$Pct,c(0,.25,.5,.75,1))), aes(Cuantil), 
+           color = paleta_tesis_fn$COLOR[3]) + 
+  scale_x_continuous(breaks = quantile(shape_votos_P12$Pct,c(0,.25,.5,.75,1)),
+                     labels = function(x) round(100*x,2) %>% paste("%",sep = "")) + 
+  labs(y = "Número de comunas",
+       x = "% bruto de votos") + 
+  cowplot::theme_half_open() + 
+  theme(axis.ticks.x = element_blank(),
+        text = element_text(size = 25),
+        axis.text.x = element_text(size = rel(1.75)))
+
+ggsave(plot = distr_votos_br_p12, width = 25, height = 15, device = cairo_pdf,
+       filename = "AED/ELECTORALES/Distr_Votos_Br_P12_FN.pdf")
+
+mapa_votos_br_p12_mediana <- shape_votos_P12 %>% 
+  ggplot() + 
   geom_sf(aes(fill = Pct), color = "transparent") + 
   geom_sf(data = mapa_dptos, fill = "transparent", color = "gray85") + 
   scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[c(6,3)],"white",
                                    paleta_tesis_fn$COLOR[c(5,2)],"#0c1740"),
                        values = scales::rescale(cuantiles_votos),
-                       breaks = cuantiles_votos[c(1,3,6)],
-                       labels = round(100*cuantiles_votos[c(1,3,6)], 1) %>% 
+                       breaks = cuantiles_votos[c(1,4,8)],
+                       labels = round(100*cuantiles_votos[c(1,4,8)], 1) %>% 
                        {paste(c("Min: ", "Mediana: ", "Max: "),.,"%",sep="")}) + 
   labs(title = "% bruto de votos por comuna") + 
   theme_void() + 
-  theme(legend.position = "left")
+  theme(plot.title = element_text(size = rel(2.75), hjust = 0.5),
+        legend.text = element_text(size = rel(1.5)),
+        legend.title = element_text(size = rel(1.5)))
+
+ggsave(plot = mapa_votos_br_p12_mediana, width = 20, height = 17, device = cairo_pdf,
+       filename = "AED/ELECTORALES/Mapa_Votos_Br_P12_FN.pdf")
 
 mapa_votos_br_p12_muestra <- ggplot() + 
   geom_sf(data = filter(shape_votos_P12, Muestra), aes(fill = Pct), color = "transparent") + 
@@ -150,7 +171,13 @@ mapa_votos_br_p12_muestra <- ggplot() +
   theme(legend.position = "left") 
 
 
-mapa_votos_br_p12_dptos <- prueba_pred %>% 
+cuantiles_votos_dptos <- datos_P12 %>% 
+  group_by(COD_DPTO) %>% 
+  summarise(Pct = sum(VOT_CANDIDATO)/sum(INSCRITOS)) %>% 
+  extract2("Pct") %>% 
+  quantile(c(0,.45,.5,.55,1))
+
+mapa_votos_br_p12_dptos <- datos_P12 %>% 
   group_by(COD_DPTO) %>% 
   summarise(Pct = sum(VOT_CANDIDATO)/sum(INSCRITOS)) %>% 
   {left_join(mapa_dptos,.,
@@ -166,7 +193,13 @@ mapa_votos_br_p12_dptos <- prueba_pred %>%
                        {paste(c("Min: ", "Mediana: ", "Max: "),.,"%",sep="")}) +
   labs(title = "% bruto de votos por departamento") + 
   theme_void() + 
-  theme(legend.position = "left")
+  theme(plot.title = element_text(size = rel(2.75), hjust = 0.5),
+        legend.text = element_text(size = rel(1.5)),
+        legend.title = element_text(size = rel(1.5)))
+
+ggsave(plot = mapa_votos_br_p12_dptos, width = 20, height = 17, device = cairo_pdf,
+       filename = "AED/ELECTORALES/Mapa_Dptos_Br_P12_FN.pdf")
+
 
 dorling_errores_muestra_P12 <- dorling_dptos_votos_P12 %>%
   mutate(Error_P12 = Pct_P12_Dpto_Real - Pct_P12_Dpto_Muestra) %>% 
