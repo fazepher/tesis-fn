@@ -110,16 +110,41 @@ check_all_diagnostics <- function(fit,...) {
   check_energy(fit)
 }
 
-#### ANALIZAMOS ####
+# #### ANALIZAMOS MODELOS NACIONALES INDIVIDUALES ####
+# 
+# MODELOS <- list.files("MODELOS_STAN/Modelos_Nal_Ind") %>% 
+# {tibble(Archivo = paste("MODELOS_STAN/Modelos_Nal_Ind",.,sep="/"))} %>% 
+#   filter(!str_detect(Archivo,"PRED"))
+# 
+# # DIAGNÓSTICOS DE BETANCOURT
+# pmap(MODELOS,~read_rds(..1) %>% check_all_diagnostics(max_depth = 12))
+# 
+# #### ANALIZAMOS MODELOS JERÁRQUICOS INDIVIDUALES ####
+# 
+# MODELOS <- list.files("MODELOS_STAN/Modelos_Jer_Ind") %>% 
+# {tibble(Archivo = paste("MODELOS_STAN/Modelos_Jer_Ind",.,sep="/"))} %>% 
+#   filter(!str_detect(Archivo,"PRED"))
+# 
+# # DIAGNÓSTICOS DE BETANCOURT
+# pmap(MODELOS,~read_rds(..1) %>% check_all_diagnostics(max_depth = 12))
+# 
+# #### ANALIZAMOS MODELOS COMPUESTOS ####
+# 
+# MODELOS <- list.files("MODELOS_STAN/Modelos_Jer_Comp") %>% 
+# {tibble(Archivo = paste("MODELOS_STAN/Modelos_Jer_Comp",.,sep="/"))} %>% 
+#   filter(!str_detect(Archivo,"PRED"),!str_detect(Archivo,"_H"))
+# 
+# # DIAGNÓSTICOS DE BETANCOURT
+# pmap(MODELOS,~read_rds(..1) %>% check_all_diagnostics(max_depth = 12))
 
-MODELOS <- list.files("MODELOS_STAN/Modelos_Jer_Comp") %>% 
-{tibble(Archivo = paste("MODELOS_STAN/Modelos_Jer_Comp",.,sep="/"))} %>% 
+MODELOS <- list.files("MODELOS_STAN/Modelos_Jer_Comp") %>%
+{tibble(Archivo = paste("MODELOS_STAN/Modelos_Jer_Comp",.,sep="/"))} %>%
   filter(!str_detect(Archivo,"PRED"))
 
 # DIAGNÓSTICOS DE BETANCOURT
-#pmap(MODELOS,~read_rds(..1) %>% check_all_diagnostics(max_depth = 12))
+# pmap(MODELOS,~read_rds(..1) %>% check_all_diagnostics(max_depth = 15))
 
-MODELO_H <- MODELOS$Archivo[8] %>% read_rds
+#### COMPARACIÓN SENSIBILIDAD ####
 
 params_ejemplo <- c("alfa[5]",
                     "beta_ajus[36,5]",
@@ -128,21 +153,116 @@ params_ejemplo <- c("alfa[5]",
                     "lambda_ajus[95,1]",
                     "kappa_ajus[52,2]")
 
-{mcmc_trace(MODELO_H,pars=params_ejemplo,facet_args = list(ncol=2)) + 
-    scale_color_manual(values = paleta_tesis_fn$COLOR[c(2,3,4,7)]) + 
-    labs(color = "Cadena")} %>% 
-  ggsave(plot = ., file = "Convergencia/Convergencia_Traceplots.pdf",width = 15, height = 10, device = cairo_pdf)
+Resumen_H <- MODELOS$Archivo[8] %>%
+  read_rds %>%
+  summary(probs = 0.5) %>%
+  .$summary %>%
+  as.data.frame %>%
+  tibble::rownames_to_column("Param") %>%
+  as_tibble() %>%
+  filter(!str_detect(Param,"lp|log_lik")) %>%
+  mutate(Modelo = "H")
+Resumen_S <- MODELOS$Archivo[9] %>%
+  read_rds %>%
+  summary(probs = 0.5) %>%
+  .$summary %>%
+  as.data.frame %>%
+  tibble::rownames_to_column("Param") %>%
+  as_tibble() %>%
+  filter(!str_detect(Param,"lp|log_lik")) %>%
+  mutate(Modelo = "S")
+
+bind_rows(Resumen_H,Resumen_S) %>%
+  select(Param,n_eff,Modelo) %>%
+  spread(Modelo,n_eff) %>%
+  {ggplot(.,aes(x=S,y=H)) +
+      geom_point(color = paleta_tesis_fn$COLOR[2], size = rel(0.25)) +
+      geom_abline(slope=1,intercept = 0, color = paleta_tesis_fn$COLOR[3], size = rel(1.5)) +
+      annotate("text", label = "S=H", x = 4000, y = 3500, color = paleta_tesis_fn$COLOR[1], size = rel(8)) +
+      cowplot::theme_half_open() +
+      labs(title = "Tamaño efectivo de muestra por parámetro") +
+      theme(plot.title = element_text(size = rel(1.5), hjust = 0.5),
+            axis.title = element_text(size = rel(2.5)),
+            axis.text = element_text(size = rel(1)))} %>%
+  ggsave(plot = ., file = "Convergencia/Compara_n_eff.pdf",width = 22.5/3, height = 17/3, device = cairo_pdf)
+
+bind_rows(Resumen_H,Resumen_S) %>%
+  select(Param,Rhat,Modelo) %>%
+  spread(Modelo,Rhat) %>%
+  {ggplot(.,aes(x=S,y=H)) +
+      geom_point(color = paleta_tesis_fn$COLOR[2], size = rel(0.1)) +
+      geom_abline(slope=1,intercept = 0, color = paleta_tesis_fn$COLOR[3], size = rel(1.5)) +
+      annotate("text", label = "S=H", x = 1.006, y = 1.003, color = paleta_tesis_fn$COLOR[1], size = rel(8)) +
+      cowplot::theme_half_open() +
+      labs(title = "Estadístico Rhat de reducción de escala por parámetro") +
+      theme(plot.title = element_text(size = rel(1.2), hjust = 0.5),
+            axis.title = element_text(size = rel(2)),
+            axis.text = element_text(size = rel(1)))} %>%
+  ggsave(plot = ., file = "Convergencia/Compara_Rhat.pdf",width = 22.5/3, height = 17/3, device = cairo_pdf)
+
+MODELO_H <- MODELOS$Archivo[8] %>% read_rds %>% extract(inc_warmup = T, permuted = F,pars=params_ejemplo)
+MODELO_S <- MODELOS$Archivo[9] %>% read_rds %>% extract(inc_warmup = T, permuted = F,pars=params_ejemplo)
+
+{mcmc_trace(MODELO_H, size = rel(.2),
+            facet_args = list(ncol=2), n_warmup = 1000) +
+    scale_color_manual(values = paleta_tesis_fn$COLOR[c(2,3,4,7)]) +
+    labs(color = "Cadena",
+         title = "Traceplots modelo H") + 
+    guides(color = guide_legend(override.aes = list(size = rel(1)))) + 
+    theme(axis.text = element_text(size = rel(1.5)),
+          strip.text = element_text(size = rel(1)),
+          legend.position = "top",
+          legend.title = element_text(size = rel(1.5)),
+          legend.text = element_text(size = rel(1.5)),
+          plot.title = element_text(size = rel(1.5), hjust = 0.5))} %>%
+  ggsave(plot = ., file = "Convergencia/Convergencia_Traceplots.pdf",width = 22.5/2, height = 17/2, device = cairo_pdf)
+
+{mcmc_trace(MODELO_S, size = rel(.2),
+            facet_args = list(ncol=2), n_warmup = 1000) +
+    scale_color_manual(values = paleta_tesis_fn$COLOR[c(2,3,4,7)]) +
+    labs(color = "Cadena",
+         title = "Traceplots modelo S") + 
+    guides(color = guide_legend(override.aes = list(size = rel(1)))) + 
+    theme(axis.text = element_text(size = rel(1.5)),
+          strip.text = element_text(size = rel(1)),
+          legend.position = "top",
+          legend.title = element_text(size = rel(1.5)),
+          legend.text = element_text(size = rel(1.5)),
+          plot.title = element_text(size = rel(1.5), hjust = 0.5))} %>%
+  ggsave(plot = ., file = "Convergencia/Convergencia_Traceplots_S.pdf",width = 22.5/2, height = 17/2, device = cairo_pdf)
+
 
 color_scheme_set(paleta_tesis_fn$COLOR[c(7,7,5,2,3,1)])
-{mcmc_acf_bar(MODELO_H,pars=params_ejemplo) + 
-    hline_at(0.25, linetype = 2, size = 0.15, color = paleta_tesis_fn$COLOR[4]) + 
-    hline_at(-0.25, linetype = 2, size = 0.15, color = paleta_tesis_fn$COLOR[4]) + 
-    scale_y_continuous(breaks = c(-0.25,0,0.25,1), limits = c(-.3,1)) + 
+{mcmc_acf_bar(MODELO_H[1001:2000,,]) +
+    hline_at(0.25, linetype = 2, size = rel(0.5), color = paleta_tesis_fn$COLOR[4]) +
+    hline_at(-0.25, linetype = 2, size = rel(0.5), color = paleta_tesis_fn$COLOR[4]) +
+    scale_y_continuous(breaks = c(-0.25,0,0.25,1), limits = c(-.5,1)) +
     labs(x = "Espaciamiento",
-         y = "Autocorrelación")} %>% 
-  ggsave(plot = ., file = "Convergencia/Convergencia_AutoCorr.pdf",width = 15, height = 10, device = cairo_pdf)
+         y = "Autocorrelación") + 
+    theme(axis.text = element_text(size = rel(1.25)),
+          axis.title = element_text(size = rel(1.5)),
+          strip.text = element_text(size = rel(1.15)))} %>%
+  ggsave(plot = ., file = "Convergencia/Convergencia_AutoCorr.pdf",width = 22.5/2, height = 17/2, device = cairo_pdf)
 
-{mcmc_dens_overlay(MODELO_H,pars=params_ejemplo) + 
-  scale_color_manual(values = paleta_tesis_fn$COLOR[c(2,3,4,7)]) + 
-  labs(color = "Cadena")} %>% 
-  ggsave(plot = ., file = "Convergencia/Convergencia_Densidades.pdf",width = 15, height = 10, device = cairo_pdf)
+{mcmc_acf_bar(MODELO_S[1001:2000,,]) +
+    hline_at(0.25, linetype = 2, size = rel(0.5), color = paleta_tesis_fn$COLOR[4]) +
+    hline_at(-0.25, linetype = 2, size = rel(0.5), color = paleta_tesis_fn$COLOR[4]) +
+    scale_y_continuous(breaks = c(-0.25,0,0.25,1), limits = c(-.5,1)) +
+    labs(x = "Espaciamiento",
+         y = "Autocorrelación") + 
+    theme(axis.text = element_text(size = rel(1.25)),
+          axis.title = element_text(size = rel(1.5)),
+          strip.text = element_text(size = rel(1.15)))} %>%
+  ggsave(plot = ., file = "Convergencia/Convergencia_AutoCorr_S.pdf",width = 22.5/2, height = 17/2, device = cairo_pdf)
+
+
+# {mcmc_dens_overlay(MODELO_H[1001:2000,,]) +
+#   scale_color_manual(values = paleta_tesis_fn$COLOR[c(2,3,4,7)]) +
+#   labs(color = "Cadena")} %>%
+#   ggsave(plot = ., file = "Convergencia/Convergencia_Densidades.pdf",width = 15, height = 10, device = cairo_pdf)
+# 
+# {mcmc_dens_overlay(MODELO_S[1001:2000,,]) +
+#     scale_color_manual(values = paleta_tesis_fn$COLOR[c(2,3,4,7)]) +
+#     labs(color = "Cadena")} %>%
+#   ggsave(plot = ., file = "Convergencia/Convergencia_Densidades_S.pdf",width = 15, height = 10, device = cairo_pdf)
+

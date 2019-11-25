@@ -46,7 +46,7 @@ lucify_basics <- function(){
         strip.text = element_text(size = rel(1.1),
                                   margin = margin(t = 8, r = 8, b = 8, l = 8)))
 }
-#extrafont::loadfonts(device = "win")
+extrafont::loadfonts(device = "win")
 theme_set(theme_minimal() + lucify_basics())
 
 #### CARGANDO DATOS ####
@@ -116,27 +116,35 @@ cuantiles_votos <- quantile(shape_votos_P12$Pct,c(0,.25,.45,.5,.55,.75,0.95,1))
 
 distr_votos_br_p12 <- shape_votos_P12 %>% 
   ggplot() + 
-  geom_histogram(aes(x=Pct),
+  geom_histogram(aes(x=Pct), size = rel(0.1),
                  binwidth = 0.0025, fill = paleta_tesis_fn$COLOR[5], color = paleta_tesis_fn$COLOR[2]) + 
-  geom_rug(data = tibble(Cuantil = quantile(shape_votos_P12$Pct,c(0,.25,.5,.75,1))), aes(Cuantil), 
-           color = paleta_tesis_fn$COLOR[3]) + 
-  scale_x_continuous(breaks = quantile(shape_votos_P12$Pct,c(0,.25,.5,.75,1)),
-                     labels = function(x) round(100*x,2) %>% paste("%",sep = "")) + 
+  annotate("rect",
+           xmin=cuantiles_votos[2], xmax = cuantiles_votos[6], ymin = 0, ymax = 700,
+           color = paleta_tesis_fn$COLOR[1], fill = paleta_tesis_fn$COLOR[1], alpha = 0.05) + 
+  annotate("segment",
+           x=cuantiles_votos[4], xend = cuantiles_votos[4], y = 0, yend = 700,
+           color = paleta_tesis_fn$COLOR[3], linetype = 1) + 
+  annotate("text",x=cuantiles_votos[2]-.03,y=700,
+           label=paste("Q1 \n",round(100*cuantiles_votos[2],1) %>% paste0("%"))) + 
+  annotate("text",x=cuantiles_votos[6]+.03,y=700,
+           label=paste("Q3 \n",round(100*cuantiles_votos[6],1) %>% paste0("%"))) + 
+  scale_x_continuous(breaks = cuantiles_votos[c(1,4,8)],
+                     labels = function(x) round(100*x,1) %>% paste("%",sep = "")) + 
   labs(y = "Número de comunas",
        x = "% bruto de votos") + 
   theme_half_open() + 
   theme(axis.ticks.x = element_blank(),
-        text = element_text(size = 25),
-        axis.text.x = element_text(size = rel(1.75)))
+        axis.title = element_text(size = rel(1.5)),
+        axis.text.x = element_text(size = rel(1)))
 
-ggsave(plot = distr_votos_br_p12, width = 25, height = 15, device = cairo_pdf,
+ggsave(plot = distr_votos_br_p12, width = 22.5/3, height = 17/3, device = cairo_pdf,
        filename = "AED/ELECTORALES/Distr_Votos_Br_P12_FN.pdf")
 
 distr_votos_br_p12_muestra <- shape_votos_P12 %>% 
   mutate(Muestra = case_when(Muestra ~ "En muestra", 
                              T ~ "Fuera de muestra")) %>% 
   {ggplot(.,aes(x=Pct,stat(density),fill=Muestra,color=Muestra)) + 
-      geom_histogram(binwidth = 0.0025, alpha = 0.4) + 
+      geom_histogram(binwidth = 0.0025, alpha = 0.5, size = rel(0.001)) + 
       facet_wrap(~Muestra,nrow = 1, scales = "free_x") + 
       scale_x_continuous(labels = function(x) round(100*x,2) %>% paste("%",sep = "")) + 
       scale_fill_manual(values = paleta_tesis_fn$COLOR[c(7,4)]) + 
@@ -145,16 +153,18 @@ distr_votos_br_p12_muestra <- shape_votos_P12 %>%
            x = "% bruto de votos") + 
       theme_classic() + 
       theme(axis.ticks.x = element_blank(),
-            text = element_text(size = 25),
-            axis.text.x = element_text(size = rel(1.5)))}
+            strip.text = element_text(size = rel(1.5)),
+            axis.title = element_text(size = rel(1.5)),
+            axis.text = element_text(size = rel(1.15)),
+            legend.position = "none")}
 
-ggsave(plot = distr_votos_br_p12_muestra, width = 25, height = 15, device = cairo_pdf,
+ggsave(plot = distr_votos_br_p12_muestra, width = 22.5/3, height = 17/3, device = cairo_pdf,
        filename = "AED/ELECTORALES/Distr_Votos_Br_P12_FN_MUESTRA.pdf")
 
 mapa_votos_br_p12_mediana <- shape_votos_P12 %>% 
   ggplot() + 
-  geom_sf(aes(fill = Pct), color = "transparent") + 
-  geom_sf(data = mapa_dptos, fill = "transparent", color = "gray85") + 
+  geom_sf(aes(fill = Pct), color = "transparent", size = rel(0.25)) + 
+  geom_sf(data = mapa_dptos, fill = "transparent", color = "gray85", size = rel(0.25)) + 
   scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[c(6,3)],"white",
                                    paleta_tesis_fn$COLOR[c(5,2)],"#0c1740"),
                        values = scales::rescale(cuantiles_votos),
@@ -163,19 +173,20 @@ mapa_votos_br_p12_mediana <- shape_votos_P12 %>%
                        {paste(c("Min: ", "Mediana: ", "Max: "),.,"%",sep="")}) + 
   labs(title = "% bruto de votos por comuna") + 
   theme_void() + 
-  theme(plot.title = element_text(size = rel(2.75), hjust = 0.5),
-        legend.text = element_text(size = rel(1.5)),
-        legend.title = element_text(size = rel(1.5)))
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5),
+        legend.text = element_text(size = rel(1.25)),
+        legend.title = element_text(size = rel(1.25)),
+        legend.position = c(0.07,0.5))
 
-ggsave(plot = mapa_votos_br_p12_mediana, width = 20, height = 17, device = cairo_pdf,
+ggsave(plot = mapa_votos_br_p12_mediana, width = 22.5/3, height = 17/3, device = cairo_pdf,
        filename = "AED/ELECTORALES/Mapa_Votos_Br_P12_FN.pdf")
 
 
 mapa_votos_br_p12_muestra <- shape_votos_P12 %>% 
   filter(Muestra) %>% 
   ggplot() + 
-  geom_sf(aes(fill = Pct), color = "transparent") + 
-  geom_sf(data = mapa_dptos, fill = "transparent", color = "gray85") + 
+  geom_sf(aes(fill = Pct), color = "transparent", size = rel(0.25)) + 
+  geom_sf(data = mapa_dptos, fill = "transparent", color = "gray85", size = rel(0.3)) + 
   scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[c(6,3)],"white",
                                    paleta_tesis_fn$COLOR[c(5,2)],"#0c1740"),
                        values = scales::rescale(cuantiles_votos),
@@ -185,11 +196,12 @@ mapa_votos_br_p12_muestra <- shape_votos_P12 %>%
                        limits = cuantiles_votos[c(1,8)]) + 
   labs(title = "Solo comunas muestreadas") + 
   theme_void() + 
-  theme(plot.title = element_text(size = rel(2.75), hjust = 0.5),
-        legend.text = element_text(size = rel(1.5)),
-        legend.title = element_text(size = rel(1.5)))
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5),
+        legend.text = element_text(size = rel(1.15)),
+        legend.title = element_text(size = rel(1.15)),
+        legend.position = c(0.06,0.5))
 
-ggsave(plot = mapa_votos_br_p12_muestra, width = 20, height = 17, device = cairo_pdf,
+ggsave(plot = mapa_votos_br_p12_muestra, width = 22.5/3, height = 17/3, device = cairo_pdf,
        filename = "AED/ELECTORALES/Mapa_Votos_Br_P12_FN_MUESTRA.pdf")
 
 
@@ -218,20 +230,20 @@ mapa_pct_anc_reg <- datos_distr_por_anc_reg %>%
   st_transform(crs = 25832)
   
 {ggplot(mapa_pct_anc_reg, aes(fill = Pct, label = paste(round(100*Pct,1),"%",sep=""))) + 
-    geom_sf(color = "gray85") + 
-    geom_sf_text(color = "gray85") + 
-    annotate("text", y = 5625000, x = 420000,
-             label = "Máximo en Picardie", color = paleta_tesis_fn$COLOR[2]) + 
+    geom_sf(color = "gray85", size = rel(0.25)) + 
+    geom_sf_text(color = "gray25") + 
+    annotate("text", y = 5625000, x = 400000,
+             label = "Máximo en \n Picardie", color = paleta_tesis_fn$COLOR[2]) + 
     geom_curve(y = 5625000, x = 300000, yend = 5550000, xend = 165000, 
                curvature = 0.2, arrow = arrow(), 
                color = paleta_tesis_fn$COLOR[2]) + 
-    annotate("text", y = 5650000, x = -250000, 
+    annotate("text", y = 5625000, x = -275000, 
              label = "Mínimo en \n Île de France", color = paleta_tesis_fn$COLOR[3]) + 
     geom_curve(y = 5625000, x = -160000, yend = 5430000, xend = 0, 
                curvature = -0.2, arrow = arrow(), 
                color = paleta_tesis_fn$COLOR[3]) + 
-    annotate("text", y = 5052000, x = 455000,
-             label = "Cerca del promedio \n en Rhône-Alpes", color = paleta_tesis_fn$COLOR[1]) + 
+    annotate("text", y = 5125000, x = 455000,
+             label = "Cerca del \n promedio en \n Rhône-Alpes", color = paleta_tesis_fn$COLOR[1]) + 
     scale_fill_gradient(low = paleta_tesis_fn$COLOR[5], high = paleta_tesis_fn$COLOR[1],
                         breaks = c(0,.1,.15,.2), labels = c("0%","10%","15%","20%"), limits = c(0,.2)) + 
     labs(title = "% bruto de votos por región") + 
@@ -239,46 +251,91 @@ mapa_pct_anc_reg <- datos_distr_por_anc_reg %>%
           axis.text.x = element_blank(),
           axis.text.y = element_blank(),
           axis.title.x = element_blank(),
-          axis.title.y = element_blank())} %>% 
-  ggsave(plot = ., width = 10, height = 10, device = cairo_pdf,
+          axis.title.y = element_blank(),
+          legend.position = c(0.1,0.5))} %>% 
+  ggsave(plot = ., width = 22.5/3, height = 17/3, device = cairo_pdf,
          filename = "AED/ELECTORALES/Pct_Br_Reg_P12_FN.pdf")
   
 
-{ggplot(datos_distr_por_anc_reg,
-        aes(x = PCT_VOTOS_BR, fill = MEDIANA/MEDIANA_NAL, stat(density))) + 
-    geom_histogram(binwidth = 0.01) +
-    geom_density(data = select(datos_distr_por_anc_reg,-COD_REG),fill="transparent",color="black") +
+{ggplot(datos_distr_por_anc_reg, aes(y=stat(density))) + 
+    geom_histogram(binwidth = 0.01, size = rel(0.25),
+                   aes(x = PCT_VOTOS_BR, fill = MEDIANA/MEDIANA_NAL)) +
+    geom_density(data = select(datos_distr_por_anc_reg,-COD_REG),
+                 fill="transparent",color="black", size = rel(0.25),
+                 aes(x = PCT_VOTOS_BR, fill = MEDIANA/MEDIANA_NAL, stat(density))) +
     geom_vline(xintercept = unique(datos_distr_por_anc_reg$MEDIANA_NAL)) + 
-    facet_geo(~COD_REG, grid = filter(fr_anc_reg, col <= 6), label = "name") + 
+    geom_text(data = distinct(datos_distr_por_anc_reg,NOM_REG,COD_REG),
+              x=0.5, aes(y = 3, label = str_replace_all(NOM_REG,"-","\n"), group = COD_REG), 
+              size = rel(2.3)) + 
+    facet_geo(~COD_REG, grid = filter(fr_anc_reg, col <= 6), 
+              label = "name", labeller = label_wrap_gen(10)) + 
     scale_fill_gradientn(colours =  c(paleta_tesis_fn$COLOR[3], "white", paleta_tesis_fn$COLOR[2]), 
                          values = c(0,0.47,0.5,.53,1), 
                          breaks = c(0.5,1,1.5), limits = c(0.5,1.5)) + 
     scale_alpha_continuous(range = c(0.3,1)) + 
-    scale_x_continuous(breaks = seq(0,1,0.2),labels = paste(seq(0,100,20),"%",sep=""),trans = "log1p") + 
+    scale_x_continuous(breaks = seq(0,.6,0.2),
+                       labels = paste(seq(0,60,20),"%",sep=""),trans = "log1p",
+                       limits = c(0,.9)) + 
     scale_y_continuous(trans = "log1p") + 
     labs(title = "% de votos por comuna para la metrópoli entera y cada región",
          fill = "Cociente de medianas") + 
-    theme(legend.position = "bottom",
-          strip.text.x = element_text(size = 15, margin = margin(10,0,0,0)),
-          plot.title = element_text(margin = margin(b = 60), size = rel(2)),
+    theme(legend.direction = "horizontal",
+          legend.position = c(0.5,0.03),
+          strip.text = element_blank(),
+          #strip.text.x = element_text(size = rel(0.25), margin = margin(10,0,0,0)),
+          plot.title = element_text(margin = margin(b = 20), size = rel(1)),
           panel.grid = element_blank(),
           axis.title.x = element_blank(),
           axis.title.y = element_blank(),
-          axis.text.y = element_blank())} %>% 
-  ggsave(plot = ., width = 20, height = 17, device = cairo_pdf,
+          axis.text.y = element_blank(),
+          axis.text.x = element_text(size = rel(0.5)))} %>% 
+  ggsave(plot = ., width = 22.5/3, height = 17/3, device = cairo_pdf,
          filename = "AED/ELECTORALES/Geofacet_Reg_P12_FN.pdf")
 
 
 #### Por Departamentos ####
 
+datos_distr_dptos <- datos_electorales_completos %>% 
+  filter(FAMILIA == "FN", ELECCION == "Presidenciales 2012") %>% 
+  inner_join(COMUNAS_2012) %>% 
+  group_by(COD_DPTO) %>% 
+  mutate(MEDIANA = median(PCT_VOTOS_BR)) %>% 
+  ungroup() %>% 
+  mutate(MEDIANA_NAL = median(PCT_VOTOS_BR)) %>% 
+  mutate(NOM_DPTO = reorder(NOM_DPTO,MEDIANA),code_insee=COD_DPTO)
+
+mapa_pct_dptos <- datos_distr_dptos %>% 
+  group_by(COD_DPTO,NOM_DPTO,code_insee) %>%
+  summarise_at(c("INSCRITOS","VOT_CANDIDATO"),sum) %>% 
+  mutate(Pct = VOT_CANDIDATO/INSCRITOS) %>% 
+  left_join(mapa_dptos) %>% 
+  st_as_sf %>% 
+  st_transform(crs = 25832)
+
+{ggplot(mapa_pct_dptos, aes(fill = Pct, label = paste(round(100*Pct,1),"%",sep=""))) + 
+    geom_sf(color = "gray85", size = rel(0.25)) + 
+    scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[c(6,3)],"white",
+                                     paleta_tesis_fn$COLOR[c(5,2)],"#0c1740"),
+                         values = scales::rescale(cuantiles_votos[c(1:7)]),
+                         labels = function(x) round(100*x, 1) %>% paste("%",sep="")) + 
+    labs(title = "% bruto de votos por departamento") + 
+    theme(panel.grid = element_blank(), 
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = c(0.1,0.5))} %>% 
+  ggsave(plot = ., width = 22.5/3, height = 17/3, device = cairo_pdf,
+         filename = "AED/ELECTORALES/Pct_Br_Dpto_P12_FN.pdf")
+
 lim_y <- max(shape_votos_P12$Pct)
   
 pct_comuna_sub <- shape_votos_P12 %>% 
     ggplot(aes(x="Metrópoli entera", y= Pct)) + 
-    geom_hline(yintercept = cuantiles_votos[4],color="gray20") + 
-    geom_hline(yintercept = cuantiles_votos[2],color = "gray50") + 
-    geom_hline(yintercept = cuantiles_votos[6],color = "gray50") + 
-    geom_violin(fill = "transparent") +
+    geom_hline(yintercept = cuantiles_votos[4],color="gray20", size = rel(0.25)) + 
+    geom_hline(yintercept = cuantiles_votos[2],color = "gray50", size = rel(0.25)) + 
+    geom_hline(yintercept = cuantiles_votos[6],color = "gray50", size = rel(0.25)) + 
+    geom_violin(fill = "transparent", size = rel(0.3)) +
     scale_y_continuous(breaks = seq(0,1,0.25),labels = paste(seq(0,100,25),"%"),  
                        limits = c(0,lim_y)) + 
     scale_x_discrete(position = "top") +
@@ -286,8 +343,8 @@ pct_comuna_sub <- shape_votos_P12 %>%
     theme(legend.position = "none",
           panel.grid = element_blank(),
           axis.title = element_blank(),
-          axis.text.x = element_text(margin = margin(30,0,10,0), size = 10),
-          axis.text.y = element_text(size = 15))
+          axis.text.x = element_text(margin = margin(30,0,10,0), size = rel(1)),
+          axis.text.y = element_text(size = rel(0.75)))
   
 pct_comuna_dpto <- shape_votos_P12 %>% 
   mutate(MEDIANA_NAL = cuantiles_votos[4]) %>% 
@@ -299,66 +356,75 @@ pct_comuna_dpto <- shape_votos_P12 %>%
   mutate(MEDIANA_DPTO = median(Pct)) %>% 
   ungroup %>% 
   mutate(COD_DPTO = reorder(COD_DPTO,MEDIANA_DPTO)) %>% 
-  {ggplot(data = ., aes(x = COD_DPTO, y = Pct, fill = FAMILIA)) + 
-      geom_hline(yintercept = cuantiles_votos[4],color="gray20") + 
-      geom_hline(yintercept = cuantiles_votos[2],color = "gray50") + 
-      geom_hline(yintercept = cuantiles_votos[6],color = "gray50") + 
-      geom_violin(aes(fill = MEDIANA_DPTO/MEDIANA_NAL)) + 
-      facet_geo(~COD_REG, grid = filter(fr_anc_reg,col<=6), label = "name", scales = "free_x") + 
-      scale_fill_gradientn(colours =  c(paleta_tesis_fn$COLOR[3], "white", paleta_tesis_fn$COLOR[2]), 
-                           values = scales::rescale(c(0.1,0.975,1,1.025,1.5)), 
-                           breaks = c(0.1,1,1.5), limits = c(0.1,1.5), labels = c("0","1","1.5")) + 
+  {ggplot(data = .) + 
+      geom_hline(yintercept = cuantiles_votos[4],color="gray20", size = rel(0.1)) + 
+      geom_hline(yintercept = cuantiles_votos[2],color = "gray50", size = rel(0.1)) + 
+      geom_hline(yintercept = cuantiles_votos[6],color = "gray50", size = rel(0.1)) + 
+      geom_violin(aes(x = COD_DPTO, y = Pct, fill = MEDIANA_DPTO/MEDIANA_NAL), size = rel(0.1)) + 
+      facet_geo(~COD_REG, grid = filter(fr_anc_reg,col<=6), label = "name", scales = "free_x",
+                labeller = label_wrap_gen(20)) + 
+      scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[c(6,3)],"white",
+                                       paleta_tesis_fn$COLOR[5],"#0c1740"),
+                           values = scales::rescale(cuantiles_votos[-c(5,8)]/cuantiles_votos[4]), 
+                           breaks = c(0.1,1,1.5), limits = c(0.1,1.5), labels = c("0","1","1.5")) +
+      # scale_fill_gradientn(colours =  c(paleta_tesis_fn$COLOR[3], "white", paleta_tesis_fn$COLOR[2]), 
+      #                      values = scales::rescale(c(0.1,0.975,1,1.025,1.5)), 
+      #                      breaks = c(0.1,1,1.5), limits = c(0.1,1.5), labels = c("0","1","1.5")) + 
       scale_y_continuous(breaks = seq(0,1,0.25),labels = paste(seq(0,100,25),"%"), 
                          limits = c(0,lim_y), trans = "log1p") + 
       theme_minimal() + 
       labs(title = "% de votos por comuna por departamento",
            fill = "Cociente de medianas") + 
-      theme(legend.position = "bottom", 
+      theme(legend.direction = "horizontal",
+            legend.position = c(0.5,0.05),
+            legend.text = element_text(size = rel(1)),
+            legend.title = element_text(size = rel(1)),
+            legend.key.height = unit(10,"pt"),
+            strip.text = element_text(size = rel(0.7), margin = margin(4,4,4,4)),
             panel.grid = element_blank(), 
             axis.title.y = element_blank(),
-            axis.text.x = element_text(margin = margin(30,0,10,0), size = 10),
+            axis.text.x = element_text(margin = margin(1,0,1,0), size = rel(0.5)),
             axis.ticks.x = element_blank(),
             axis.title.x = element_blank(),
             axis.text.y = element_blank(),
-            strip.text.x = element_text(size = 15, margin = margin(10,0,0,0)),
-            plot.title = element_text(size = 30, hjust = 0.5, margin = margin(b = 30)),
-            plot.subtitle = element_text(margin = margin(5,0,25,0), size = 20, hjust = 0.5))}
+            plot.title = element_text(size = rel(1), hjust = 0.5, margin = margin(b = 1)))}
   
 {ggplot(tibble(x=0:1,y=0:1),aes(x,y)) +
     theme_void() +
     annotation_custom(grob = ggplotGrob(pct_comuna_dpto),
                       xmin = 0,xmax = 1,ymin = 0,ymax = 1) +
     annotation_custom(grob = ggplotGrob(pct_comuna_sub),
-                      xmin = 0.82,xmax = 0.92,ymin = 0.8,ymax = 0.95)} %>% 
-  ggsave(plot = ., width = 23, height = 20, device = cairo_pdf,
+                      xmin = 0.8,xmax = 1,ymin = 0.825,ymax = 1) + 
+    theme(plot.margin = margin(0,0,0,0))} %>% 
+  ggsave(plot = ., width = 22.5/3, height = 17/2.85, device = cairo_pdf,
          filename = "AED/ELECTORALES/Geofacet_Dpto_P12_FN.pdf")
 
 
-geofacets_distr_por_reg <-list(elección = unique(datos_electorales_completos$ELECCION),
-                               familia = familias_politicas) %>% 
-  cross_df %>% 
-  mutate(Archivo = paste("AED/ELECTORALES/Geofacet_Reg/Geofacet_Distr_por_Reg_",
-                         str_remove_all(elección,"(residenciales 20)|(egislativas 20)"),
-                         "_",
-                         str_replace_all(familia, " ", "_"),
-                         ".pdf",
-                         sep = "")) %>% 
-  pmap(~genera_geofacet_distr_votos(..1,..2) %T>% 
-         ggsave(plot = ., width = 18, height = 15, device = cairo_pdf,
-                filename =..3))
-
-geofacets_distr_por_dpto <- list(elección = unique(datos_electorales_completos$ELECCION),
-                                 familia = familias_politicas) %>% 
-  cross_df %>% 
-  mutate(Archivo = paste("AED/ELECTORALES/Geofacet_Dpto/Geofacet_Distr_por_Dpto_",
-                         str_remove_all(elección,"(residenciales 20)|(egislativas 20)"),
-                         "_",
-                         str_replace_all(familia, " ", "_"),
-                         ".pdf",
-                         sep = "")) %>% 
-  pmap(~geofacet_pct_votos_dpto(..1,..2) %T>% 
-         ggsave(plot = ., width = 25, height = 25, device = cairo_pdf,
-                filename =..3))
+# geofacets_distr_por_reg <-list(elección = unique(datos_electorales_completos$ELECCION),
+#                                familia = familias_politicas) %>% 
+#   cross_df %>% 
+#   mutate(Archivo = paste("AED/ELECTORALES/Geofacet_Reg/Geofacet_Distr_por_Reg_",
+#                          str_remove_all(elección,"(residenciales 20)|(egislativas 20)"),
+#                          "_",
+#                          str_replace_all(familia, " ", "_"),
+#                          ".pdf",
+#                          sep = "")) %>% 
+#   pmap(~genera_geofacet_distr_votos(..1,..2) %T>% 
+#          ggsave(plot = ., width = 18, height = 15, device = cairo_pdf,
+#                 filename =..3))
+# 
+# geofacets_distr_por_dpto <- list(elección = unique(datos_electorales_completos$ELECCION),
+#                                  familia = familias_politicas) %>% 
+#   cross_df %>% 
+#   mutate(Archivo = paste("AED/ELECTORALES/Geofacet_Dpto/Geofacet_Distr_por_Dpto_",
+#                          str_remove_all(elección,"(residenciales 20)|(egislativas 20)"),
+#                          "_",
+#                          str_replace_all(familia, " ", "_"),
+#                          ".pdf",
+#                          sep = "")) %>% 
+#   pmap(~geofacet_pct_votos_dpto(..1,..2) %T>% 
+#          ggsave(plot = ., width = 25, height = 25, device = cairo_pdf,
+#                 filename =..3))
                                  
 
 dorling_dptos_votos_P12 <- datos_P12 %>% 
@@ -381,21 +447,23 @@ dorling_errores_muestra_P12 <- dorling_dptos_votos_P12 %>%
   geom_sf(data = fronteras_reg_dorling, fill = "transparent", color = paleta_tesis_fn$COLOR[1]) + 
   geom_sf(aes(fill = Error_P12)) + 
   geom_sf_text(aes(label = code_insee), color = "gray95", size = rel(5)) + 
-  annotate("text", y = 5550000, x = 500000, size = rel(8),
+  annotate("text", y = 5600000, x = 390000, size = rel(6),
            label = "Máximo error en \n Bas-Rhin (+4.2 pp)", color = paleta_tesis_fn$COLOR[1]) + 
-  geom_curve(y = 5500000, x = 500000, yend = 5400000, xend = 440000, 
+  geom_curve(y = 5525000, x = 500000, yend = 5400000, xend = 440000, 
              curvature = -0.3, arrow = arrow(), 
              color = paleta_tesis_fn$COLOR[1]) + 
   scale_fill_gradientn(colours = paleta_tesis_fn$COLOR[c(6,3,2,3,6)],
                        values = scales::rescale(c(-.05,-.01,0,.01,.05)),
                        limits = c(-.05,.05),
                        labels = function(x){paste(100*x,"pp")}) +
+  guides(fill = guide_legend(title = "Error de \n estimación")) + 
   theme_void() + 
-  theme(legend.position = "left",
-        legend.title = element_blank())
+  theme(legend.position = c(0.07,0.5),
+        legend.text = element_text(size = rel(1.5)),
+        legend.title = element_text(size = rel(1.5), hjust = 0.5))
 
 
-ggsave(plot = dorling_errores_muestra_P12, width = 20, height = 17, device = cairo_pdf,
+ggsave(plot = dorling_errores_muestra_P12, width = 22.5/3, height = 17/3, device = cairo_pdf,
        filename = "AED/ELECTORALES/Dorling_Errores_P12_FN_MUESTRA.pdf")
 
 #### Asociaciones ####
@@ -408,40 +476,48 @@ datos_asociaciones <- shape_votos_P12 %>%
   select(-Hom,-Fra,-Loc,-starts_with("Ocu")) %>% 
   gather(Cats,Pct_Cats,-Pct,-COD_DPTO) %>%
   left_join(equivalencia_variables) %>%
-  mutate(Variable = factor(Variable,
-                           levels = c("Sexo","Nacionalidad","Cond. Migratoria",
-                                      "Ocupación Juvenil","Ocupación General","Ocupación Mayores",
-                                      "Edad","Cat. Socioprof.","Escolaridad"),ordered = T)) %>% 
-  arrange(Variable) %>% 
-  mutate(Aux = 1:n()) %>% 
-  mutate(Etiqueta = reorder(Etiqueta,Aux))
+  group_by(Etiqueta) %>% 
+  mutate(Corr = cor(Pct,Pct_Cats)) %>% 
+  ungroup %>% 
+  mutate(Etiqueta = reorder(Etiqueta,Corr))
 
-datos_asociaciones %>% 
+datos_asociaciones  %>% 
   {ggplot(.,aes(x=Pct_Cats,y=Pct)) + 
-      geom_point(color=paleta_tesis_fn$COLOR[1], size = rel(0.05), alpha = 0.4) +
-      facet_wrap(~Etiqueta,scales = "free_x") + 
-      scale_y_continuous(trans="logit", breaks = c(0.01,0.05,0.175,0.3,0.62), 
+      geom_hex(bins = 75) + 
+      facet_wrap(~Etiqueta,scales = "free_x", labeller = label_wrap_gen(20)) + 
+      scale_y_continuous(trans="logit", breaks = c(0.05,0.175,0.62), 
                          labels = function(x) round(100*x,1) %>% paste("%",sep="")) + 
       scale_x_continuous(labels = function(x) round(100*x,1) %>% paste("%",sep="")) + 
+      scale_fill_gradient(low = paleta_tesis_fn$COLOR[2], high = "#0c1740") + 
       labs(x = "Variable Explicativa", 
-           y = "% bruto de votos \n en escala logística")} %>% 
-  ggsave(plot = ., width = 30, height = 20, device = cairo_pdf,
+           y = "% bruto de votos en escala logística") + 
+      theme(axis.title = element_text(size = rel(1.3)),
+            axis.text = element_text(size = rel(0.8)),
+            strip.text = element_text(size = rel(1)),
+            panel.grid.major = element_blank(),
+            legend.position = "none")} %>% 
+  ggsave(plot = ., width = 19.5, height = 12.5, device = cairo_pdf,
          filename = "AED/Asociaciones_MUESTRA.pdf")
 
 datos_asociaciones %>% 
   {ggplot(.,aes(x=Pct_Cats,y=Pct)) + 
       geom_smooth(aes(group = COD_DPTO), method = "lm", se = FALSE,
-                  color=paleta_tesis_fn$COLOR[3], size = rel(0.2)) + 
+                  color=paleta_tesis_fn$COLOR[3], size = rel(0.1)) + 
       geom_smooth(method = "lm", se = FALSE, 
                   color=paleta_tesis_fn$COLOR[2], 
-                  size = rel(1),) +
-      facet_wrap(~Etiqueta,scales = "free") + 
+                  size = rel(0.8),) +
+      facet_wrap(~Etiqueta,scales = "free", labeller = label_wrap_gen(20)) + 
       scale_y_continuous(trans="logit", breaks = c(0.01,0.05,0.175,0.3,0.62), 
                          labels = function(x) round(100*x,1) %>% paste("%",sep="")) + 
       scale_x_continuous(labels = function(x) round(100*x,1) %>% paste("%",sep="")) + 
       labs(title = "Tendencias ingenuas",
            x = "Variable Explicativa", 
-           y = "% bruto de votos \n en escala logística")} %>% 
-  ggsave(plot = ., width = 30, height = 20, device = cairo_pdf,
+           y = "% bruto de votos \n en escala logística") + 
+      theme(plot.title = element_text(size = rel(1.2), margin = margin(b = 5)),
+            axis.text.y = element_text(size = rel(0.75)),
+            axis.text.x = element_text(size = rel(0.65)),
+            axis.title = element_text(size = rel(1)),
+            strip.text = element_text(size = rel(0.8)))} %>% 
+  ggsave(plot = ., width = 22.5/1.5, height = 17/1.5, device = cairo_pdf,
          filename = "AED/Tend_Ingenuas_Todas_MUESTRA.pdf")
 

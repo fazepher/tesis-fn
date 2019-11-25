@@ -12,7 +12,7 @@ waics_jer <- nombres_jer  %>%
        read_rds %>% extract_log_lik %>% waic) %>% 
     set_names(nombres_jer)}
 
-nombres_comp <-  discard(list.files("MODELOS_STAN/Modelos_Jer_Comp"),~str_detect(.,"PRED."))
+nombres_comp <-  discard(list.files("MODELOS_STAN/Modelos_Jer_Comp"),~str_detect(.,"PRED.|_S"))
 waics_comp <- nombres_comp  %>%
 {map(.,~paste("MODELOS_STAN/Modelos_Jer_Comp",.x,sep="/") %>%
        read_rds %>% extract_log_lik %>% waic) %>%
@@ -69,37 +69,37 @@ compara_waics %>%
   filter(WAIC <= 50000) %>% 
   {ggplot(.,aes(x=WAIC,y=Modelo,color=Variables,label=Etiqueta)) + 
       geom_segment(aes(x=WAIC-EE,xend=WAIC+EE,yend=Modelo),key_glyph = draw_key_rect) + 
-      geom_label(size=rel(5),show.legend = FALSE) + 
+      geom_label(size=rel(4.5),show.legend = FALSE) + 
       scale_color_manual(values = c("black",paleta_tesis_fn$COLOR[c(1,6,4,3,2,5,7)])) +
       guides(col = guide_legend(nrow=1)) + 
       labs(title = "El WAIC mejora al ir agregando las variables explicativas") +
       theme_linedraw() +
       theme(legend.position = "bottom", 
             panel.grid = element_blank(),
-            axis.text.y = element_text(size = rel(1.1)),
+            axis.text.y = element_text(size = rel(0.75)),
             plot.margin = margin(r = 10, l = 10),
-            plot.title = element_text(margin = margin(t = 10, b = 10), size = rel(1.7)),
+            plot.title = element_text(margin = margin(t = 10, b = 10), size = rel(1.25)),
             axis.title.x = element_text(margin = margin(t = 15, b = 7), size = rel(1.2)),
             axis.title.y = element_blank())} %>%
   ggsave(filename = "MODELOS_STAN/Graf_WAIC_Modelos_Compuestos.pdf",plot = .,
-         device = cairo_pdf, width = 20, height = 10)
+         device = cairo_pdf, width = 22.5/2, height = 17/3)
 
-names(waics_todos) %>%
-  map_dfr(~tibble(M1 = str_remove(.x,".rds"),
-                  WAIC =waics_todos[[.x]]$estimates["waic","Estimate"])) %>%
-  right_join(compara_todos) %>%
-  filter(M1!=M2,!str_detect(M1,"Compuesto"),!str_detect(M2,"Compuesto")) %>%
-  mutate(M1 = str_remove_all(M1,"Modelo_") %>% str_replace_all("_"," ") %>% reorder(WAIC),
-         M2 = str_remove_all(M2,"Modelo_") %>% str_replace_all("_"," ") %>% factor(levels=rev(levels(M1)),ordered = T),
-         p = round(100*p)) %>%
-  {ggplot(data = ., aes(x=M1,y=M2,label=p,fill=p)) +
-      geom_label() +
-      scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[6],"white",paleta_tesis_fn$COLOR[2]),
-                           values = c(0,0.01,0.5,0.99,1)) +
-      labs(title = expression("Probabilidad estimada de que"~WAIC[M1]<=WAIC[M2])) +
-      theme_minimal() +
-      theme(axis.text.x = element_text(angle = 90))} %>%
-  ggsave(filename = "MODELOS_STAN/Graf_WAIC_Probas_Modelos_Individuales.pdf",plot = .,
-         device = cairo_pdf, width = 20, height = 10)
+# names(waics_todos) %>%
+#   map_dfr(~tibble(M1 = str_remove(.x,".rds"),
+#                   WAIC =waics_todos[[.x]]$estimates["waic","Estimate"])) %>%
+#   right_join(compara_todos) %>%
+#   filter(M1!=M2,!str_detect(M1,"Compuesto"),!str_detect(M2,"Compuesto")) %>%
+#   mutate(M1 = str_remove_all(M1,"Modelo_") %>% str_replace_all("_"," ") %>% reorder(WAIC),
+#          M2 = str_remove_all(M2,"Modelo_") %>% str_replace_all("_"," ") %>% factor(levels=rev(levels(M1)),ordered = T),
+#          p = round(100*p)) %>%
+#   {ggplot(data = ., aes(x=M1,y=M2,label=p,fill=p)) +
+#       geom_label() +
+#       scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[6],"white",paleta_tesis_fn$COLOR[2]),
+#                            values = c(0,0.01,0.5,0.99,1)) +
+#       labs(title = expression("Probabilidad estimada de que"~WAIC[M1]<=WAIC[M2])) +
+#       theme_minimal() +
+#       theme(axis.text.x = element_text(angle = 90))} %>%
+#   ggsave(filename = "MODELOS_STAN/Graf_WAIC_Probas_Modelos_Individuales.pdf",plot = .,
+#          device = cairo_pdf, width = 20, height = 10)
 
 

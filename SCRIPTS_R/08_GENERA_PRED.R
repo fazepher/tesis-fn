@@ -164,7 +164,7 @@ genera_pred_modelos <- equivalencia_variables %>%
   distinct(Variable) %>% 
   extract2(1) %>% 
   map_dfr(~ tibble(Variable = .x, 
-                   Tipo = c("Nacional","Departamental","Jerárquico")) %>% 
+                   Tipo = c("Nacional","Jerárquico")) %>% 
             {mutate(., 
                     Archivo_Guardar = genera_nombres_archivos_modelos(.) %>% 
                       str_replace_all(".rds","_PRED.rds"))}) %>% 

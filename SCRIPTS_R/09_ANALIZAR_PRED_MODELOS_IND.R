@@ -118,7 +118,7 @@ cuantiles_votos <- datos_P12 %>%
   quantile(c(0,0.25,.45,.5,.55,0.75,0.95,1))
 
 etiquetas_votos <- round(100*cuantiles_votos[c(1,4,8)], 1) %>% 
-{paste(c("Mínimo real: ", "Mediana real: ", "Máximo real: "),.,"%",sep="")}
+{paste(c("Mín. real: ", "Mediana real: ", "Máx. real: "),.,"%",sep="")}
 
 #### ANALIZA ####
 
@@ -155,8 +155,8 @@ analiza_pred_modelo <- function(variable, tipo, genera_mapas = T){
   
   if(genera_mapas){
     mapa_pred <- ggplot(ajuste_medio) + 
-      geom_sf(aes(fill = Pct), color = "transparent") + 
-      geom_sf(data = mapa_dptos, fill = "transparent", color = "gray85") + 
+      geom_sf(aes(fill = Pct), color = "transparent", size = rel(0.25)) + 
+      geom_sf(data = mapa_dptos, fill = "transparent", color = "gray85", size = rel(0.25)) + 
       scale_fill_gradientn(colours = c(paleta_tesis_fn$COLOR[c(6,3)],"white",
                                        paleta_tesis_fn$COLOR[c(5,2)],"#0c1740"),
                            values = scales::rescale(cuantiles_votos),
@@ -164,45 +164,47 @@ analiza_pred_modelo <- function(variable, tipo, genera_mapas = T){
                            labels = etiquetas_votos,
                            limits = cuantiles_votos[c(1,8)]) + 
       theme_void() + 
-      theme(legend.position = "left")
+      theme(plot.title = element_text(size = rel(1.5), hjust = 0.5),
+            legend.text = element_text(size = rel(0.75)),
+            legend.title = element_text(size = rel(0.75)),
+            legend.position = c(0.1,0.525))
     
     
     mapa_error <- ggplot(ajuste_medio) + 
-      geom_sf(aes(fill = Error), color = "transparent") + 
-      geom_sf(data = mapa_dptos, fill = "transparent", color = "gray85") + 
+      geom_sf(aes(fill = Error), color = "transparent", size = rel(0.25)) + 
+      geom_sf(data = mapa_dptos, fill = "transparent", color = "gray85", size = rel(0.25)) + 
       scale_fill_gradientn(colours = paleta_tesis_fn$COLOR[c(1,6,4,7,4,6,1)],
                            values = scales::rescale(c(-50,-20,-5,0,5,20,50)),
                            limits = c(-50,50),
                            breaks = c(-50,-20,-5,5,20,50), 
                            labels = function(x){paste(x,"pp")}) +
       theme_void() + 
-      theme(legend.position = "left")
+      theme(plot.title = element_text(size = rel(1.5), hjust = 0.5),
+            legend.text = element_text(size = rel(1)),
+            legend.title = element_text(size = rel(1)),
+            legend.position = c(0.1,0.5))
     
     {ggdraw() + 
         draw_label(paste("Modelo individual",tipo,"para",variable),
                    x = 0.5, y = 0.95) + 
-        draw_plot(mapa_pred + theme(legend.position = "none"),
-                  x = 0.025, width = 0.45, height = 0.9) + 
-        draw_grob(get_legend(mapa_pred),
-                  x = 0.05, y = 0, width = 0.05) + 
-        draw_plot(mapa_error + theme(legend.position = "none"),
-                  x = 0.525, width = 0.45, height = 0.9) + 
-        draw_grob(get_legend(mapa_error),
-                  x = 0.55, y = 0, width = 0.05)} %>% 
+        draw_plot(mapa_pred,
+                  x = 0.025, width = 0.475, height = 0.9) + 
+        draw_plot(mapa_error,
+                  x = 0.525, width = 0.475, height = 0.9)} %>% 
       {ggsave(filename = gen_nombre_map_com(variable,tipo), 
               plot = ., 
-              device = cairo_pdf, width = 20, height = 10)}
+              device = cairo_pdf, width = 22.5/2, height = 17/3)}
     
   }
   
   print.noquote("Extrayendo medidas de error del modelo")
   
-  waic <- genera_nombre_archivo_modelo(variable,tipo) %>% 
-    readRDS %T>% 
-    {get_elapsed_time(.) ->> tiempo} %>% 
-    extract_log_lik %>% 
-    waic %>% 
-    {.$estimates["waic","Estimate"]}
+  # waic <- genera_nombre_archivo_modelo(variable,tipo) %>% 
+  #   readRDS %T>% 
+  #   {get_elapsed_time(.) ->> tiempo} %>% 
+  #   extract_log_lik %>% 
+  #   waic %>% 
+  #   {.$estimates["waic","Estimate"]}
   
   tiempo %<>% 
     as_tibble %>% 
@@ -217,7 +219,7 @@ analiza_pred_modelo <- function(variable, tipo, genera_mapas = T){
     as_tibble %>% 
     mutate(Variable = variable, 
            Tipo = tipo,
-           WAIC = waic,
+           #WAIC = waic,
            Tiempo = tiempo) %>% 
     select(Variable,Tipo,everything())
   
@@ -229,6 +231,7 @@ medidas_errores_modelos <- equivalencia_variables %>%
   extract2(1) %>%
   map_dfr(~ tibble(Variable = .x,
                    Tipo = c("Nacional","Departamental","Jerárquico"))) %>%
+  slice(18:19) %>% #OJO SE ESTÁN GENERANDO SOLO ALGUNOS MAPAS
   pmap_dfr(~ analiza_pred_modelo(..1,..2))
 
 write.csv(medidas_errores_modelos,file = "MODELOS_STAN/Medidas_Errores_Modelos.csv",row.names = FALSE)
@@ -248,12 +251,12 @@ datos_graf_medidas <- medidas_errores_modelos %>%
          Pérdida = if_else(Medida == "WAIC", "WAIC", str_sub(Medida,2,2)))
 
 datos_graf_medidas %>%
-  filter(Tipo != "Departamental") %>% 
+  filter(Tipo != "Departamental",Pérdida != "WAIC") %>% #OJO NO SE MUESTRA EL WAIC EN EL GRÁFICO
   {ggplot(.,aes(y=Variable,x=Valor,color = Nivel)) +
       geom_point(data = filter(.,Tipo == "Nacional"),
                  size=rel(2)) +
       geom_path(data = filter(.,Dif>0),
-                aes(group = Variable),arrow = arrow(length = unit(0.1, "inches"))) +
+                aes(group = Variable),arrow = arrow(length = unit(0.075, "inches"))) +
       facet_grid(Nivel~Pérdida,
                  scales="free_x",
                  labeller = labeller(Pérdida = c(A = "Absoluto",
@@ -271,11 +274,12 @@ datos_graf_medidas %>%
       theme(legend.position = "none",
             panel.grid = element_blank(),
             strip.background = element_rect(fill="transparent"),
-            strip.text = element_text(color = "black", size = rel(1.25)),
-            axis.text.y = element_text(size = rel(1.1)),
+            strip.text = element_text(color = "black", size = rel(1.7)),
+            axis.text.y = element_text(size = rel(1.3)),
+            axis.text.x = element_text(size = rel(1.4)),
             plot.margin = margin(r = 10),
-            plot.title = element_text(margin = margin(t = 10, b = 10), size = rel(1.7)),
-            axis.title.x = element_text(margin = margin(t = 15, b = 7), size = rel(1.2)),
-            axis.title.y = element_text(margin = margin(r = 15, l = 7), size = rel(1.2)))} %>%
+            plot.title = element_text(margin = margin(t = 10, b = 10), size = rel(1.9)),
+            axis.title.x = element_text(margin = margin(t = 15, b = 7), size = rel(1.7)),
+            axis.title.y = element_text(margin = margin(r = 15, l = 7), size = rel(1.7)))} %>%
   ggsave(filename = "MODELOS_STAN/Graf_Errores_Modelos_Individuales.pdf",plot = .,
-         device = cairo_pdf, width = 20, height = 10)
+         device = cairo_pdf, width = 12, height = 8)

@@ -127,8 +127,8 @@ modela_variable_individual <- function(nom_variable, tipo, archivo,
     
     modelo_stan <- modelo_compilado_ind
     
-    hiperparams <- list(mu_alfa = -1.7, sigma_alfa = 0.25,
-                        mu_beta = array(0, dim = cats_ind), sigma_beta = 0.5)
+    hiperparams <- list(mu_alfa = -1.8, sigma_alfa = 0.5,
+                        mu_beta = array(0, dim = cats_ind), sigma_beta = 1)
     
     if(tipo == "Nacional"){
       
@@ -139,7 +139,7 @@ modela_variable_individual <- function(nom_variable, tipo, archivo,
       
       inicia_cadena <- function(dptos = 1, cat_indep = cats_ind){
         
-        list(alfa = rep(rnorm(1,-1.7,2), dptos) %>% array(dim = dptos), 
+        list(alfa = rep(rnorm(1,-1.8,2), dptos) %>% array(dim = dptos), 
              beta = rep(rnorm(cat_indep,0,4), dptos) %>% array(dim = c(dptos, cat_indep))) 
       }
       
@@ -152,7 +152,7 @@ modela_variable_individual <- function(nom_variable, tipo, archivo,
       
       inicia_cadena <- function(dptos = 96, cat_indep = cats_ind){
         
-        list(alfa = rep(rnorm(1,-1.7,2), dptos) %>% array(dim = dptos), 
+        list(alfa = rep(rnorm(1,-1.8,2), dptos) %>% array(dim = dptos), 
              beta = rep(rnorm(cat_indep,0,4), dptos) %>% array(dim = c(dptos, cat_indep))) 
       }
       
@@ -163,8 +163,8 @@ modela_variable_individual <- function(nom_variable, tipo, archivo,
     
     modelo_stan <- modelo_compilado_jer
     
-    hiperparams <- list(m_alfa = -1.7, s_alfa = 0.25,
-                        m_beta = array(0, dim = cats_ind), s_beta = array(0.5, dim = cats_ind),
+    hiperparams <- list(m_alfa = -1.8, s_alfa = 0.5,
+                        m_beta = array(0, dim = cats_ind), s_beta = array(1, dim = cats_ind),
                         sigma_alfa = 1,
                         sigma_beta = array(1, dim = cats_ind))
       
@@ -175,7 +175,7 @@ modela_variable_individual <- function(nom_variable, tipo, archivo,
     
     inicia_cadena <- function(dptos = 96, cat_indep = cats_ind){
       
-      list(alfa = rep(rnorm(1,-1.7,2), dptos) %>% array(dim = dptos),
+      list(alfa = rep(rnorm(1,-1.8,2), dptos) %>% array(dim = dptos),
            beta = rep(rnorm(cat_indep,0,4), dptos) %>% array(dim = c(dptos, cat_indep)))
     }
     
@@ -228,15 +228,15 @@ modela_variable_individual <- function(nom_variable, tipo, archivo,
 
 #### Modelos Individuales ####
 
-genera_modelos <- equivalencia_variables %>% 
-  distinct(Variable) %>% 
-  extract2(1) %>% 
-  map_dfr(~ tibble(Variable = .x, 
-                   Tipo = c("Nacional","Departamental","Jerárquico")) %>% 
-            {mutate(., 
-                    Archivo_Guardar = genera_nombres_archivos_modelos(.))}) %>% 
+genera_modelos <- equivalencia_variables %>%
+  distinct(Variable) %>%
+  extract2(1) %>%
+  map_dfr(~ tibble(Variable = .x,
+                   Tipo = c("Nacional","Jerárquico")) %>%
+            {mutate(.,
+                    Archivo_Guardar = genera_nombres_archivos_modelos(.))}) %>%
   pmap(~ modela_variable_individual(nom_variable = ..1,
-                                    tipo = ..2, 
+                                    tipo = ..2,
                                     archivo = ..3))
 remove(genera_modelos)
 

@@ -71,6 +71,15 @@ muestra <- marco_muestral %>%
 
 write.csv(muestra, file = "DATOS/Muestra.csv", row.names = FALSE)
 
+muestra_previa <- datos_censales %>% 
+  filter(AÑO == 2012) %>% 
+  select(CODGEO,Pob) %>% 
+  right_join(anti_join(marco_muestral,muestra), by = "CODGEO") %>% 
+  sample_n(size = round(nrow(muestra)*.1), weight = Pob) %>% 
+  select(-Pob)
+
+write.csv(muestra_previa, file = "DATOS/Muestra_previa.csv", row.names = FALSE)
+
 #### Comparados muestras ####
 # comparados_muestra <- muestra %>% 
 #   left_join(datos_electorales_completos) %>% 
